@@ -19,6 +19,7 @@ import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 
+import commands.AlignToPose;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -54,9 +55,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private double m_lastSimTime;
 
     VisionSubsystem vision = Constants.RobotConstants.visionSubsystem;
-    PIDController xController = new PIDController(0.1, 0, 0);
-    PIDController yController = new PIDController(0.1, 0, 0);
-    PIDController thetaController = new PIDController(0.1, 0, 0);
+
 
     private double currentOutputY = 0;
     private double currentOutputX = 0;
@@ -403,30 +402,54 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         );
     }
 
-    public Command alignToAprilTag(int aprilTagId, Pose2d targetPoseRelativeToTag) {
-        return new InstantCommand(()-> {
+    public Command alignToAprilTag() {
+
+        // return an instance of AlignToPose
+
+
+            int tagID;
+            Pose2d targetPoseRelativeToTag = new Pose2d();
+
             PhotonPipelineResult result = vision.getPipelineResult();
             if(result.hasTargets()){
                 var target = result.getBestTarget();
-                
-                // this is where I would filter for IDs
+                tagID = target.getFiducialId();
+                switch(tagID){
+                    case 6: targetPoseRelativeToTag = Constants.DriveConstants.tag6Pose;
+                        break;
+                    case 7: targetPoseRelativeToTag = Constants.DriveConstants.tag7Pose;
+                        break;
+                    case 8: targetPoseRelativeToTag = Constants.DriveConstants.tag8Pose;
+                        break;
+                    case 9: targetPoseRelativeToTag = Constants.DriveConstants.tag9Pose;
+                        break;
+                    case 10: targetPoseRelativeToTag = Constants.DriveConstants.tag10Pose;
+                        break;
+                    case 11: targetPoseRelativeToTag = Constants.DriveConstants.tag11Pose;
+                        break;
+                    case 17: targetPoseRelativeToTag = Constants.DriveConstants.tag11Pose;
+                        break;
+                    case 18: targetPoseRelativeToTag = Constants.DriveConstants.tag10Pose;
+                        break;
+                    case 19: targetPoseRelativeToTag = Constants.DriveConstants.tag9Pose;
+                        break;
+                    case 20: targetPoseRelativeToTag = Constants.DriveConstants.tag8Pose;
+                        break;
+                    case 21: targetPoseRelativeToTag = Constants.DriveConstants.tag7Pose;
+                        break;
+                    case 22: targetPoseRelativeToTag = Constants.DriveConstants.tag6Pose;
+                        break;
+                }
 
                 Pose2d robotPose = getPose();
                 Optional<Pose3d> tagPose3d = vision.getAprilTagFieldLayout().getTagPose(target.fiducialId);
                 if(tagPose3d.isPresent()){
                     Pose2d tagPose = tagPose3d.get().toPose2d();
                     Pose2d targetPose = tagPose.plus(new Transform2d(targetPoseRelativeToTag.getTranslation(), targetPoseRelativeToTag.getRotation()));
-                    Transform2d error = robotPose.minus(targetPose);
-
-                    double xSpeed = xController.calculate(error.getX());
-                    double ySpeed = xController.calculate(error.getY());
-                    double thetaSpeed = xController.calculate(error.getRotation().getRadians());
-
-                    drive(new ChassisSpeeds(xSpeed, ySpeed, thetaSpeed));
+ 
+                    return new AlignToPose(this, targetPose);
                 }
-                
-
             }
-        }, this);
+            return new InstantCommand();
     }
 }

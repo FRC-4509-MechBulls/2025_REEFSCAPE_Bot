@@ -42,7 +42,7 @@ public class RobotContainer {
 
     private final CommandXboxController driverController = new CommandXboxController(0);
     public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
-    private final StateControllerSub stateController = Constants.RobotConstants.stateController;
+    private final StateControllerSub stateController = new StateControllerSub();
 
     SendableChooser<Command> autoChooser = new SendableChooser<>();
 
@@ -60,11 +60,27 @@ public class RobotContainer {
     InstantCommand setLevel3 = new InstantCommand(()->stateController.setLevel(Level.level3));
     InstantCommand setLevel4 = new InstantCommand(()->stateController.setLevel(Level.level4));
 
+    InstantCommand extendElevatorClaw = new InstantCommand(()->stateController.extendElevatorClaw());
+    InstantCommand retractElevatorClaw = new InstantCommand(()->stateController.retractElevatorClaw());
+
+    InstantCommand stopShooterEF = new InstantCommand(()->stateController.setShooterEF(0));
+    InstantCommand intakeShooterEF = new InstantCommand(()->stateController.setShooterEF(Constants.ShooterConstants.shooterIntakeEFSpeed));
+    InstantCommand shootShooterEF = new InstantCommand(()->stateController.setShooterEF(Constants.ShooterConstants.shooterShootEFSpeed));
+    InstantCommand ejectShooterEF = new InstantCommand(()->stateController.setShooterEF(Constants.ShooterConstants.shooterPlaceEFSpeed));
+
+    InstantCommand setShooterLowerReef = new InstantCommand(()->stateController.setShooterAngle(Constants.ShooterConstants.lowerReefAngle));
+    InstantCommand setShooterUpperReef = new InstantCommand(()->stateController.setShooterAngle(Constants.ShooterConstants.upperReefAngle));
+    InstantCommand setShooterNet = new InstantCommand(()->stateController.setShooterAngle(Constants.ShooterConstants.netAngle));
+    InstantCommand setShooterProcessor = new InstantCommand(()->stateController.setShooterAngle(Constants.ShooterConstants.processorAngle));
+    InstantCommand setShooterHolding = new InstantCommand(()->stateController.setShooterAngle(Constants.ShooterConstants.holdingAngle));
+
     InstantCommand setProcessorMode = new InstantCommand(()->stateController.setAlgaeObjective(AlgaeObjective.processor));
     InstantCommand setNetMode = new InstantCommand(()->stateController.setAlgaeObjective(AlgaeObjective.net));
 
-    InstantCommand alignToAprilTag = new InstantCommand(()->drivetrain.alignToAprilTag(0, new Pose2d()));
+    InstantCommand extendClimb = new InstantCommand(()->stateController.setClimb(Constants.ClimbConstants.climbAngle));
+    InstantCommand retractClimb = new InstantCommand(()->stateController.setClimb(0));
 
+    InstantCommand alignToAprilTag = new InstantCommand(()->drivetrain.alignToAprilTag());
 
     public RobotContainer() {
         configureBindings();
