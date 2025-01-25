@@ -10,15 +10,13 @@ import frc.robot.Constants;
 
 public class ShooterSubsystem extends SubsystemBase{
 
-    TalonFX upperEF;
-    TalonFX lowerEF;
+    TalonFX EF;
     TalonFX arm;
     AbsoluteEncoder absoluteEncoder;
     PIDController armPIDController;
 
     public ShooterSubsystem() {
-        upperEF = new TalonFX(Constants.ShooterConstants.upperEFID);
-        lowerEF = new TalonFX(Constants.ShooterConstants.lowerEFID);
+        EF = new TalonFX(Constants.ShooterConstants.armEFID);
         arm = new TalonFX(Constants.ShooterConstants.armID);
         armPIDController = new PIDController(Constants.ShooterConstants.armkp, Constants.ShooterConstants.armki, Constants.ShooterConstants.armkd);
 
@@ -43,8 +41,17 @@ public class ShooterSubsystem extends SubsystemBase{
         SmartDashboard.putNumber("Arm Angle", absoluteEncoder.getPosition());
     }
 
-    public void rotate(double setPoint){
+    public void rotateShooter(double setPoint){
         armPIDController.setSetpoint(setPoint);
     }
 
+    public void stopEF(){
+        EF.set(0);
+    }
+    public void intakeEF(){
+        EF.set(.5);
+    }
+    public void outputEF(){
+        EF.set(-1);
+    }
 }

@@ -4,85 +4,121 @@
 
 package frc.robot;
 
-import com.ctre.phoenix6.Utils;
-import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
-import com.ctre.phoenix6.mechanisms.swerve.SwerveModule.DriveRequestType;
+import static edu.wpi.first.units.Units.*;
+
+import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
+import com.ctre.phoenix6.swerve.SwerveRequest;
+import com.pathplanner.lib.auto.NamedCommands;
 import com.pathplanner.lib.commands.PathPlannerAuto;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
+import frc.robot.StateControllerSub.AlgaeObjective;
+import frc.robot.StateControllerSub.ItemType;
+import frc.robot.StateControllerSub.Level;
+import frc.robot.StateControllerSub.State;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 
 public class RobotContainer {
-  private double MaxSpeed = TunerConstants.kSpeedAt12VoltsMps; // kSpeedAt12VoltsMps desired top speed
-  private double MaxAngularRate = 1.5 * Math.PI; // 3/4 of a rotation per second max angular velocity
+    private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
+    private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
 
-  /* Setting up bindings for necessary control of the swerve drive platform */
-  private final CommandXboxController joystick = new CommandXboxController(0); // My joystick
-  private final CommandSwerveDrivetrain drivetrain = TunerConstants.DriveTrain; // My drivetrain
+    /* Setting up bindings for necessary control of the swerve drive platform */
+    private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
+            .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1) // Add a 10% deadband
+            .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // Use open-loop control for drive motors
+    private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
+    private final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
 
-  private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
-      .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1) // Add a 10% deadband
-      .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // I want field-centric
-                                                               // driving in open loop
-  private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
-  private final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
+    private final Telemetry logger = new Telemetry(MaxSpeed);
 
-  SendableChooser<Command> autoChooser = new SendableChooser<>();
+    private final CommandXboxController driverController = new CommandXboxController(0);
+    public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
+    private final StateControllerSub stateController = Constants.RobotConstants.stateController;
 
- 
+    SendableChooser<Command> autoChooser = new SendableChooser<>();
 
-  private final Telemetry logger = new Telemetry(MaxSpeed);
+    InstantCommand setIntakeMode = new InstantCommand(()->stateController.setRobotState(State.intaking));
+    InstantCommand setHoldingMode = new InstantCommand(()->stateController.setRobotState(State.holding));
+    InstantCommand setPrePlacingMode = new InstantCommand(()->stateController.setRobotState(State.pre_placing));
+    InstantCommand setPlacingMode = new InstantCommand(()->stateController.setRobotState(State.placing));
+    InstantCommand setClimbMode = new InstantCommand(()->stateController.setRobotState(State.climbing));
 
-  private void configureBindings() {
+    InstantCommand setAlgaeMode = new InstantCommand(()->stateController.setItemType(ItemType.algae));
+    InstantCommand setCoralMode = new InstantCommand(()->stateController.setItemType(ItemType.coral));
 
-    drivetrain.setDefaultCommand(drivetrain.drive(joystick.getLeftY() * MaxSpeed, joystick.getLeftX() * MaxSpeed, joystick.getRightX() * MaxAngularRate));
-/*     drivetrain.setDefaultCommand( // Drivetrain will execute this command periodically
-        drivetrain.applyRequest(() -> drive.withVelocityX(joystick.getLeftY() * MaxSpeed) // Drive forward with
-                                                                                           // negative Y (forward)
-            .withVelocityY(joystick.getLeftX() * MaxSpeed) // Drive left with negative X (left)
-            .withRotationalRate(-joystick.getRightX() * MaxAngularRate) // Drive counterclockwise with negative X (left)
-        )); */
+    InstantCommand setLevel1 = new InstantCommand(()->stateController.setLevel(Level.level1));
+    InstantCommand setLevel2 = new InstantCommand(()->stateController.setLevel(Level.level2));
+    InstantCommand setLevel3 = new InstantCommand(()->stateController.setLevel(Level.level3));
+    InstantCommand setLevel4 = new InstantCommand(()->stateController.setLevel(Level.level4));
 
-    joystick.a().whileTrue(drivetrain.applyRequest(() -> brake));
-    joystick.b().whileTrue(drivetrain
-        .applyRequest(() -> point.withModuleDirection(new Rotation2d(-joystick.getLeftY(), -joystick.getLeftX()))));
+    InstantCommand setProcessorMode = new InstantCommand(()->stateController.setAlgaeObjective(AlgaeObjective.processor));
+    InstantCommand setNetMode = new InstantCommand(()->stateController.setAlgaeObjective(AlgaeObjective.net));
 
-    // reset the field-centric heading on left bumper press
-    joystick.leftBumper().onTrue(drivetrain.runOnce(() -> drivetrain.seedFieldRelative()));
+    InstantCommand alignToAprilTag = new InstantCommand(()->drivetrain.alignToAprilTag(0, new Pose2d()));
 
-    if (Utils.isSimulation()) {
-      drivetrain.seedFieldRelative(new Pose2d(new Translation2d(), Rotation2d.fromDegrees(90)));
+
+    public RobotContainer() {
+        configureBindings();
     }
-    drivetrain.registerTelemetry(logger::telemeterize);
 
-    createAutos();
-  }
+    private void configureBindings() {
+        // Note that X is defined as forward according to WPILib convention,
+        // and Y is defined as to the left according to WPILib convention.
+         drivetrain.setDefaultCommand(
+            // Drivetrain will execute this command periodically
+            drivetrain.applyRequest(() ->
+                drive.withVelocityX(-driverController.getLeftY() * MaxSpeed) // Drive forward with negative Y (forward)
+                    .withVelocityY(-driverController.getLeftX() * MaxSpeed) // Drive left with negative X (left)
+                    .withRotationalRate(-driverController.getRightX() * MaxAngularRate) // Drive counterclockwise with negative X (left)
+            )
+        );
 
-  public RobotContainer() {
-    configureBindings();
-  }
+ //       drivetrain.setDefaultCommand(drivetrain.drive(-driverController.getLeftY() * MaxSpeed, -driverController.getLeftX() * MaxSpeed, -driverController.getRightX() * MaxAngularRate));
 
-    private void createAutos(){
- //
+        driverController.a().whileTrue(drivetrain.applyRequest(() -> brake));
+        driverController.b().whileTrue(drivetrain.applyRequest(() ->
+            point.withModuleDirection(new Rotation2d(-driverController.getLeftY(), -driverController.getLeftX()))
+        ));
 
-    //autoChooser = AutoBuilder.buildAutoChooser();
+        // Run SysId routines when holding back/start and X/Y.
+        // Note that each routine should be run exactly once in a single log.
+        driverController.back().and(driverController.y()).whileTrue(drivetrain.sysIdDynamic(Direction.kForward));
+        driverController.back().and(driverController.x()).whileTrue(drivetrain.sysIdDynamic(Direction.kReverse));
+        driverController.start().and(driverController.y()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kForward));
+        driverController.start().and(driverController.x()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kReverse));
 
- //   SmartDashboard.putData("autoChooser",autoChooser);
+        // reset the field-centric heading on left bumper press
+        driverController.leftBumper().onTrue(drivetrain.runOnce(() -> drivetrain.seedFieldCentric()));
 
-  }
+        drivetrain.registerTelemetry(logger::telemeterize);
+        
+        registerNamedCommands();
+        createAutos();
+    }
+    public void registerNamedCommands() {
+        NamedCommands.registerCommand("command name", new InstantCommand());
 
+    }
+    public void createAutos(){
+        autoChooser.setDefaultOption("no auto", null);
 
-  public Command getAutonomousCommand() {
-    // An example command will be run in autonomous
- //     return autoChooser.getSelected();
-    return null;
-  }
+        autoChooser.addOption("Auto", new PathPlannerAuto("Auto"));
+        autoChooser.addOption("New Auto", new PathPlannerAuto("New Auto"));
+        autoChooser.addOption("Straight", new PathPlannerAuto("Straight"));
+
+        SmartDashboard.putData("autoChooser",autoChooser);
+    }
+
+    public Command getAutonomousCommand() {
+        return autoChooser.getSelected();
+    }
 }

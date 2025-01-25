@@ -1,10 +1,18 @@
 package frc.robot;
 
+import java.util.Optional;
+
+import org.photonvision.EstimatedRobotPose;
+
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.subsystems.CommandSwerveDrivetrain;
+import frc.robot.subsystems.VisionSubsystem;
 
 public class StateControllerSub extends SubsystemBase{
 
@@ -17,19 +25,27 @@ public class StateControllerSub extends SubsystemBase{
     public enum State{
         holding, intaking, pre_placing, placing, climbing
     }
-    public enum IntakeSource{
-        source, floor
-    }
     public enum AlgaeObjective{
         net, processor
     }
 
-    private State state = State.holding;
-    private State lastState = State.holding;
-    private ItemType itemType = ItemType.coral;
-    private Level level = Level.level1;
-    private IntakeSource intakeSource = IntakeSource.source;
-    private AlgaeObjective algaeObjective = AlgaeObjective.net;
+    private State state;
+    private State lastState;
+    private ItemType itemType;
+    private Level level;
+    private AlgaeObjective algaeObjective;
+    private VisionSubsystem visionSubsystem;
+    private CommandSwerveDrivetrain driveSubsystem;
+
+    public StateControllerSub() {
+        state = State.holding;
+        State lastState = State.holding;
+        itemType = ItemType.coral;
+        level = Level.level1;
+        algaeObjective = AlgaeObjective.net;
+        visionSubsystem = Constants.RobotConstants.visionSubsystem;
+        driveSubsystem = Constants.RobotConstants.driveSubsystem;
+    }
 
     private Pose2d robotPose = new Pose2d();
 
@@ -42,8 +58,8 @@ public class StateControllerSub extends SubsystemBase{
     public Level getLevel(){
         return level;
     }
-    public IntakeSource getIntakeSource(){
-        return intakeSource;
+    public AlgaeObjective getAlgaeObjective(){
+        return algaeObjective;
     }
     
     public void setRobotState(State desiredState){
@@ -59,15 +75,24 @@ public class StateControllerSub extends SubsystemBase{
     public void setLevel(Level desiredLevel){
         level = desiredLevel;
     }
-    public void setIntakeSource(IntakeSource desiredIntakeSource){
-        intakeSource = desiredIntakeSource;
+    public void setAlgaeObjective(AlgaeObjective desiredAlgaeObjective) {
+        algaeObjective = desiredAlgaeObjective;
     }
 
+    public void updatePoseFromVision() {
+//        Optional<EstimatedRobotPose> result = visionSubsystem.getEstimatedGlobalPose(robotPose);
+//        if(result.isPresent()){
+//            // swerveDriveTrain.odometry.addVisionMeasurement(result.get().estimatedPose.toPose2d(), result.get().timestampSeconds);
+//            Pose2d estimatedPose = result.get().estimatedPose.toPose2d();
+//            driveSubsystem.addVisionMeasurement(estimatedPose, Timer.getFPGATimestamp());
+//        }
+        
+    }
     public void periodic() {
         SmartDashboard.putString("Robot State", state.toString());
         SmartDashboard.putString("Item Type", itemType.toString());
         SmartDashboard.putString("Level", level.toString());
-        SmartDashboard.putString("Intake Source", intakeSource.toString());
+        SmartDashboard.putString("Algae Objective", algaeObjective.toString());
 
         switch(state){
             case holding: 
