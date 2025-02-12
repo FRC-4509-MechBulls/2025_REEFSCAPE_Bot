@@ -11,6 +11,7 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.ClimbSubsystem;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.ElevatorSubsystem;
@@ -50,15 +51,15 @@ public class StateControllerSub extends SubsystemBase{
     public StateControllerSub() {
         state = State.holding;
         State lastState = State.holding;
-        itemType = ItemType.coral;
+        itemType = ItemType.algae;
         level = Level.level1;
-        algaeObjective = AlgaeObjective.net;
-        algaeIntakeSource = AlgaeIntakeSource.level3;
-        visionSubsystem = Constants.RobotConstants.visionSubsystem;
-        driveSubsystem = Constants.RobotConstants.driveSubsystem;
-        elevatorSubsystem = Constants.RobotConstants.elevatorSubsystem;
-        shooterSubsystem = Constants.RobotConstants.shooterSubsystem;
-        climbSubsystem = Constants.RobotConstants.climbSubsystem;
+        algaeObjective = AlgaeObjective.processor;
+        algaeIntakeSource = AlgaeIntakeSource.level2;
+        visionSubsystem = new VisionSubsystem();
+        driveSubsystem = TunerConstants.createDrivetrain();
+        elevatorSubsystem = new ElevatorSubsystem();
+        shooterSubsystem = new ShooterSubsystem();
+        climbSubsystem = new ClimbSubsystem();
     }
 
     private Pose2d robotPose = new Pose2d();
@@ -77,6 +78,9 @@ public class StateControllerSub extends SubsystemBase{
     }
     public AlgaeIntakeSource getAlgaeIntakeSource() {
         return algaeIntakeSource;
+    }
+    public VisionSubsystem getVisionSubsystem() {
+        return visionSubsystem;
     }
     
     public void setRobotState(State desiredState){
@@ -103,11 +107,9 @@ public class StateControllerSub extends SubsystemBase{
     public void updatePoseFromVision() {
         Optional<EstimatedRobotPose> result = visionSubsystem.getEstimatedGlobalPose(robotPose);
         if(result.isPresent()){
-            // swerveDriveTrain.odometry.addVisionMeasurement(result.get().estimatedPose.toPose2d(), result.get().timestampSeconds);
             Pose2d estimatedPose = result.get().estimatedPose.toPose2d();
             driveSubsystem.addVisionMeasurement(estimatedPose, Timer.getFPGATimestamp());
         }
-        
     }
 
     public void extendElevatorClaw(){
@@ -155,13 +157,14 @@ public class StateControllerSub extends SubsystemBase{
 
     public void periodic() {
         updateSmartDashboard();
+        updatePoseFromVision();
 
         switch(state){
             case holding: 
                 retractElevatorClaw();
                 setElevatorHeight();
                 setShooterEF(0);
-                setShooterAngle(0);
+                setShooterAngle(Constants.ShooterConstants.holdingAngle);
                 setClimb(0);
                 break;
 
@@ -201,10 +204,10 @@ public class StateControllerSub extends SubsystemBase{
                     }
                     else if(itemType.equals(ItemType.algae)){
                         if(algaeObjective.equals(AlgaeObjective.net)){
-                            setShooterEF(Constants.ShooterConstants.shooterPlaceEFSpeed);
+                            setShooterEF(Constants.ShooterConstants.shooterShootEFSpeed);
                         }
                         else if(algaeObjective.equals(AlgaeObjective.processor)) {
-                            setShooterEF(Constants.ShooterConstants.shooterShootEFSpeed);
+                            setShooterEF(Constants.ShooterConstants.shooterPlaceEFSpeed);
                         }
                     }
                 break;
@@ -223,5 +226,35 @@ public class StateControllerSub extends SubsystemBase{
         SmartDashboard.putString("Level", level.toString());
         SmartDashboard.putString("Algae Objective", algaeObjective.toString());
         SmartDashboard.putString("Algae Intake Source", algaeIntakeSource.toString());
+    }
+
+
+
+    public void rightBumper() {
+        if(state.equals(State.holding)){
+            if(itemType.equals(ItemType.coral)){
+                setItemType(ItemType.algae);
+            } else {
+                setItemType(ItemType.coral);
+            }
+        }
+    }
+
+    public void leftBumper() {
+        if(algaeIntakeSource.equals(AlgaeIntakeSource.level2)){
+            algaeIntakeSource = AlgaeIntakeSource.level3;
+        } else{
+            algaeIntakeSource = AlgaeIntakeSource.level2;
+        }
+    }
+
+    public void leftTrigger(){
+        if(!state.equals(State.placing)){
+            if(algaeObjective.equals(AlgaeObjective.net)){
+                    algaeObjective = AlgaeObjective.processor;
+                } else {
+                    algaeObjective = AlgaeObjective.net;
+                }
+        }   
     }
 }

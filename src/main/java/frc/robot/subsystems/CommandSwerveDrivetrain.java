@@ -20,6 +20,7 @@ import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 
 import commands.AlignToPose;
+import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -54,7 +55,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private Notifier m_simNotifier = null;
     private double m_lastSimTime;
 
-    VisionSubsystem vision = Constants.RobotConstants.visionSubsystem;
+
 
 
     private double currentOutputY = 0;
@@ -402,15 +403,13 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         );
     }
 
-    public Command alignToAprilTag() {
+    public Command alignToAprilTag(PhotonPipelineResult result, AprilTagFieldLayout aprilTagLayout) {
 
         // return an instance of AlignToPose
-
 
             int tagID;
             Pose2d targetPoseRelativeToTag = new Pose2d();
 
-            PhotonPipelineResult result = vision.getPipelineResult();
             if(result.hasTargets()){
                 var target = result.getBestTarget();
                 tagID = target.getFiducialId();
@@ -441,8 +440,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                         break;
                 }
 
-                Pose2d robotPose = getPose();
-                Optional<Pose3d> tagPose3d = vision.getAprilTagFieldLayout().getTagPose(target.fiducialId);
+                Optional<Pose3d> tagPose3d = aprilTagLayout.getTagPose(target.fiducialId);
                 if(tagPose3d.isPresent()){
                     Pose2d tagPose = tagPose3d.get().toPose2d();
                     Pose2d targetPose = tagPose.plus(new Transform2d(targetPoseRelativeToTag.getTranslation(), targetPoseRelativeToTag.getRotation()));

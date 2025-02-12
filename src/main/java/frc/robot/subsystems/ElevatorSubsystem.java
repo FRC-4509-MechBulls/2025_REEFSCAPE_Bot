@@ -20,16 +20,19 @@ public class ElevatorSubsystem extends SubsystemBase{
     DutyCycleEncoder elevatorEncoder;
     private double zeroHeight;
     PIDController elevatorController;
+    public double targetHeight;
 
     TalonFX coralClaw;
     DutyCycleEncoder clawEncoder;
     private double clawZeroOffset;
     PIDController clawController;
     private boolean clawExtended;
+    private double targetClaw;
 
     public ElevatorSubsystem() {
 
         elevator = new TalonFX(Constants.ElevatorConstants.elevatorMotorID);
+        elevatorMotorConfig = new TalonFXConfiguration();
         elevatorMotorConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
         elevatorMotorConfig.CurrentLimits.StatorCurrentLimit = 40;
         elevatorMotorConfig.CurrentLimits.StatorCurrentLimitEnable = true;
@@ -39,6 +42,7 @@ public class ElevatorSubsystem extends SubsystemBase{
 
         elevatorEncoder = new DutyCycleEncoder(Constants.ElevatorConstants.elevatorEncoderChannel);
         zeroHeight = Constants.ElevatorConstants.elevatorEncoderZeroHeight;
+        targetHeight = zeroHeight;
 
         elevatorController = new PIDController(Constants.ElevatorConstants.elevatorkp, Constants.ElevatorConstants.elevatorki, Constants.ElevatorConstants.elevatorkd);
         elevatorController.setSetpoint(Constants.ElevatorConstants.holdingHeight);
@@ -55,10 +59,12 @@ public class ElevatorSubsystem extends SubsystemBase{
         clawController.setTolerance(5);
 
         clawExtended = false;
+        targetClaw = Constants.ElevatorConstants.clawRetractedAngle;
 
     }
 
     public void setHeight(double desiredHeight){
+        targetHeight = desiredHeight;
         elevatorController.setSetpoint(desiredHeight);
     }
     
@@ -66,16 +72,23 @@ public class ElevatorSubsystem extends SubsystemBase{
         clawExtended = extended;
         if(extended){
             clawController.setSetpoint(Constants.ElevatorConstants.clawExtendedAngle);
+            targetClaw = Constants.ElevatorConstants.clawExtendedAngle;
         }
         else {
             clawController.setSetpoint(Constants.ElevatorConstants.clawRetractedAngle);
+            targetClaw = Constants.ElevatorConstants.clawRetractedAngle;
         }
     }
 
     public void periodic() {
-        elevator.setControl(new MotionMagicDutyCycle(clawZeroOffset)); // Better than PID Control?
-        elevatorController.calculate((elevatorEncoder.get()-zeroHeight)*Constants.ElevatorConstants.distancePerRotation);
-        clawController.calculate((clawEncoder.get()-clawZeroOffset)*360);
+//        elevator.setControl(new MotionMagicDutyCycle(targetHeight)); // Get rid of the PIDController?
+//        coralClaw.setControl(new MotionMagicDutyCycle(targetClaw));
+
+  //      elevatorController.calculate((elevatorEncoder.get()-zeroHeight)*Constants.ElevatorConstants.distancePerRotation);
+   
+   //     clawController.calculate((clawEncoder.get()-clawZeroOffset)*360);
+
+  //      coralClaw.set(clawController.calculate((clawEncoder.get()-clawZeroOffset)*360)); 
 
         updateSmartDashboard();
     }
@@ -83,7 +96,7 @@ public class ElevatorSubsystem extends SubsystemBase{
     public void updateSmartDashboard(){
         SmartDashboard.putBoolean("Claw Extended", clawExtended);
         SmartDashboard.putNumber("Claw Error", clawController.getError());
-        SmartDashboard.putNumber("Elevator Height", (elevatorEncoder.get()-zeroHeight)*Constants.ElevatorConstants.distancePerRotation);
+        SmartDashboard.putNumber("Elevator Height", (elevatorEncoder.get()*Constants.ElevatorConstants.distancePerRotation-zeroHeight)*Constants.ElevatorConstants.distancePerRotation);
         SmartDashboard.putNumber("Elevator Error", elevatorController.getError());
     }
     

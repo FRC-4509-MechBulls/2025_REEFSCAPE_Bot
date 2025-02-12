@@ -27,6 +27,7 @@ public class ClimbSubsystem extends SubsystemBase{
 
     public ClimbSubsystem() {
         climb = new SparkMax(Constants.ClimbConstants.climbMotorID, MotorType.kBrushless);
+        config = new SparkMaxConfig();
         config.smartCurrentLimit(40, 40);
         config.secondaryCurrentLimit(50);
         config.idleMode(IdleMode.kBrake); // ??
@@ -45,11 +46,7 @@ public class ClimbSubsystem extends SubsystemBase{
     }
 
     public void periodic() {
-        if(encoder.getPosition()>desiredPosition){
-            climb.set(0);
-        } else{
-            climb.set((desiredPosition-encoder.getPosition())/100);
-        }
+        climb.set((desiredPosition-encoder.getPosition())/100);
     }
     
 }
