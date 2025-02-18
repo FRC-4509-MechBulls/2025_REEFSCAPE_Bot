@@ -171,6 +171,35 @@ public class RobotContainer {
     
     public void registerNamedCommands() {
         NamedCommands.registerCommand("command name", new InstantCommand());
+        NamedCommands.registerCommand("setIntakeMode", setIntakeMode);
+        NamedCommands.registerCommand("setHoldingMode", setHoldingMode);
+        NamedCommands.registerCommand("setPrePlacingMode", setPrePlacingMode);
+        NamedCommands.registerCommand("setPlacingMode", setPlacingMode);
+        NamedCommands.registerCommand("setClimbMode", setClimbMode);
+
+        NamedCommands.registerCommand("setAlgaeMode", setAlgaeMode);
+        NamedCommands.registerCommand("setCoralMode", setCoralMode);
+
+        NamedCommands.registerCommand("setLevel1", setLevel1);
+        NamedCommands.registerCommand("setLevel2", setLevel2);
+        NamedCommands.registerCommand("setLevel3", setLevel3);
+        NamedCommands.registerCommand("setLevel4", setLevel4);
+
+        NamedCommands.registerCommand("stopShooterEF", stopShooterEF);
+        NamedCommands.registerCommand("intakeShooterEF", intakeShooterEF);
+        NamedCommands.registerCommand("shootShooterEF", shootShooterEF);
+        NamedCommands.registerCommand("ejectShooterEF", ejectShooterEF);
+
+        NamedCommands.registerCommand("setShooterLowerReef", setShooterLowerReef);
+        NamedCommands.registerCommand("setShooterUpperReef", setShooterUpperReef);
+        NamedCommands.registerCommand("setShooterNet", setShooterNet);
+        NamedCommands.registerCommand("setShooterProcessor", setShooterProcessor);
+        NamedCommands.registerCommand("setShooterHolding", setShooterHolding);
+
+        NamedCommands.registerCommand("setProcessorMode", setProcessorMode);
+        NamedCommands.registerCommand("setNetMode", setNetMode);
+
+        NamedCommands.registerCommand("alignToAprilTag", alignToAprilTag);
 
     }
     public void createAutos(){
