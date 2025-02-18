@@ -31,6 +31,8 @@ import frc.robot.StateControllerSub.State;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.ClimbySubsystem;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
+import frc.robot.subsystems.ShooterSubsystem;
+import frc.robot.subsystems.VisionSubsystem;
 
 public class RobotContainer {
     private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
@@ -38,7 +40,10 @@ public class RobotContainer {
     private ClimbySubsystem climbySubsystem = new ClimbySubsystem();  
 
     /* Setting up bindings for necessary control of the swerve drive platform */
-    private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
+    private final SwerveRequest.RobotCentric robotCentricDrive = new SwerveRequest.RobotCentric()
+            .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * .1)
+            .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
+    private final SwerveRequest.FieldCentric fieldCentricDrive = new SwerveRequest.FieldCentric()
             .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1) // Add a 10% deadband
             .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // Use open-loop control for drive motors
     private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
@@ -47,8 +52,11 @@ public class RobotContainer {
     private final Telemetry logger = new Telemetry(MaxSpeed);
 
     private final CommandXboxController driverController = new CommandXboxController(0);
+    private final CommandXboxController operatorController = new CommandXboxController(1);
+
     public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
     private final StateControllerSub stateController = new StateControllerSub();
+    private final VisionSubsystem vision = stateController.getVisionSubsystem();
 
     SendableChooser<Command> autoChooser = new SendableChooser<>();
 
@@ -66,9 +74,6 @@ public class RobotContainer {
     InstantCommand setLevel3 = new InstantCommand(()->stateController.setLevel(Level.level3));
     InstantCommand setLevel4 = new InstantCommand(()->stateController.setLevel(Level.level4));
 
-    InstantCommand extendElevatorClaw = new InstantCommand(()->stateController.extendElevatorClaw());
-    InstantCommand retractElevatorClaw = new InstantCommand(()->stateController.retractElevatorClaw());
-
     InstantCommand stopShooterEF = new InstantCommand(()->stateController.setShooterEF(0));
     InstantCommand intakeShooterEF = new InstantCommand(()->stateController.setShooterEF(Constants.ShooterConstants.shooterIntakeEFSpeed));
     InstantCommand shootShooterEF = new InstantCommand(()->stateController.setShooterEF(Constants.ShooterConstants.shooterShootEFSpeed));
@@ -83,10 +88,10 @@ public class RobotContainer {
     InstantCommand setProcessorMode = new InstantCommand(()->stateController.setAlgaeObjective(AlgaeObjective.processor));
     InstantCommand setNetMode = new InstantCommand(()->stateController.setAlgaeObjective(AlgaeObjective.net));
 
-    InstantCommand extendClimb = new InstantCommand(()->stateController.setClimb(Constants.ClimbConstants.climbAngle));
-    InstantCommand retractClimb = new InstantCommand(()->stateController.setClimb(0));
+    InstantCommand alignToAprilTag = new InstantCommand(()->drivetrain.alignToAprilTag(vision.getPipelineResult(), vision.getAprilTagFieldLayout()));
 
-    InstantCommand alignToAprilTag = new InstantCommand(()->drivetrain.alignToAprilTag());
+    RunCommand climbForward = new RunCommand(()->stateController.toggleClimb(.6));
+    RunCommand climbReverse = new RunCommand(()->stateController.toggleClimb(-.6));
 
     public RobotContainer() {
         configureBindings();
@@ -95,23 +100,24 @@ public class RobotContainer {
     private void configureBindings() {
         // Note that X is defined as forward according to WPILib convention,
         // and Y is defined as to the left according to WPILib convention.
-        climbySubsystem.setDefaultCommand(new RunCommand(() -> {
-            double rightTrigger = driverController.getRightTriggerAxis();
-            double leftTrigger = driverController.getLeftTriggerAxis();
-            double voltage = (rightTrigger - leftTrigger) * 12;
 
-            climbySubsystem.setVoltage(voltage);
-        }, climbySubsystem));
-
-        drivetrain.setDefaultCommand(
+/* 
+         drivetrain.setDefaultCommand(
             // Drivetrain will execute this command periodically
             drivetrain.applyRequest(() ->
-                drive.withVelocityX(-driverController.getLeftY() * MaxSpeed) // Drive forward with negative Y (forward)
+                fieldCentricDrive.withVelocityX(-driverController.getLeftY() * MaxSpeed) // Drive forward with negative Y (forward)
                     .withVelocityY(-driverController.getLeftX() * MaxSpeed) // Drive left with negative X (left)
                     .withRotationalRate(-driverController.getRightX() * MaxAngularRate) // Drive counterclockwise with negative X (left)
         
             )
         );
+
+        driverController.rightBumper().whileTrue(drivetrain.applyRequest(()->
+                robotCentricDrive.withVelocityX(-driverController.getLeftY() * MaxSpeed)
+                .withVelocityY(-driverController.getLeftX() * MaxSpeed)
+                .withRotationalRate(-driverController.getRightX() * MaxAngularRate)
+        ));
+*/
         
  //       drivetrain.setDefaultCommand(drivetrain.drive(-driverController.getLeftY() * MaxSpeed, -driverController.getLeftX() * MaxSpeed, -driverController.getRightX() * MaxAngularRate));
 
@@ -129,6 +135,29 @@ public class RobotContainer {
 
         // reset the field-centric heading on left bumper press
         driverController.leftBumper().onTrue(drivetrain.runOnce(() -> drivetrain.seedFieldCentric()));
+
+        driverController.rightTrigger().onTrue(setClimbMode);
+        driverController.leftTrigger().onTrue(setHoldingMode);
+
+        driverController.povUp().whileTrue(climbForward);
+        driverController.povDown().whileTrue(climbReverse);
+
+
+        operatorController.a().onTrue(setIntakeMode);
+        operatorController.b().onTrue(setHoldingMode);
+        operatorController.x().onTrue(setPrePlacingMode);
+        operatorController.y().onTrue(setPlacingMode);
+
+        operatorController.povDown().onTrue(setLevel1);
+        operatorController.povUp().onTrue(setLevel4);
+        operatorController.povLeft().onTrue(setLevel2);
+        operatorController.povRight().onTrue(setLevel3);
+
+        operatorController.rightBumper().onTrue(new InstantCommand(()->stateController.rightBumper()));
+
+        operatorController.leftBumper().onTrue(new InstantCommand(()->stateController.leftBumper()));
+        operatorController.leftTrigger().onTrue(new InstantCommand(()->stateController.leftTrigger()));
+
 
         drivetrain.registerTelemetry(logger::telemeterize);
         
