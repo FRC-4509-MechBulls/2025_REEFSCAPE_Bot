@@ -10,14 +10,18 @@ import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.NamedCommands;
 import com.pathplanner.lib.commands.PathPlannerAuto;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.SparkMax;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.robot.StateControllerSub.AlgaeObjective;
@@ -25,11 +29,13 @@ import frc.robot.StateControllerSub.ItemType;
 import frc.robot.StateControllerSub.Level;
 import frc.robot.StateControllerSub.State;
 import frc.robot.generated.TunerConstants;
+import frc.robot.subsystems.ClimbySubsystem;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 
 public class RobotContainer {
     private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
     private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
+    private ClimbySubsystem climbySubsystem = new ClimbySubsystem();  
 
     /* Setting up bindings for necessary control of the swerve drive platform */
     private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
@@ -89,15 +95,24 @@ public class RobotContainer {
     private void configureBindings() {
         // Note that X is defined as forward according to WPILib convention,
         // and Y is defined as to the left according to WPILib convention.
-         drivetrain.setDefaultCommand(
+        climbySubsystem.setDefaultCommand(new RunCommand(() -> {
+            double rightTrigger = driverController.getRightTriggerAxis();
+            double leftTrigger = driverController.getLeftTriggerAxis();
+            double voltage = (rightTrigger - leftTrigger) * 12;
+
+            climbySubsystem.setVoltage(voltage);
+        }, climbySubsystem));
+
+        drivetrain.setDefaultCommand(
             // Drivetrain will execute this command periodically
             drivetrain.applyRequest(() ->
                 drive.withVelocityX(-driverController.getLeftY() * MaxSpeed) // Drive forward with negative Y (forward)
                     .withVelocityY(-driverController.getLeftX() * MaxSpeed) // Drive left with negative X (left)
                     .withRotationalRate(-driverController.getRightX() * MaxAngularRate) // Drive counterclockwise with negative X (left)
+        
             )
         );
-
+        
  //       drivetrain.setDefaultCommand(drivetrain.drive(-driverController.getLeftY() * MaxSpeed, -driverController.getLeftX() * MaxSpeed, -driverController.getRightX() * MaxAngularRate));
 
         driverController.a().whileTrue(drivetrain.applyRequest(() -> brake));
@@ -120,6 +135,11 @@ public class RobotContainer {
         registerNamedCommands();
         createAutos();
     }
+
+    public CommandXboxController getController(){
+        return driverController;
+    }
+    
     public void registerNamedCommands() {
         NamedCommands.registerCommand("command name", new InstantCommand());
 
