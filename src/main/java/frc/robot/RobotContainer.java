@@ -165,9 +165,39 @@ public class RobotContainer {
     public void createAutos(){
         autoChooser.setDefaultOption("no auto", null);
 
+        // Trouble Shooting - Basic
         autoChooser.addOption("Auto", new PathPlannerAuto("Auto"));
         autoChooser.addOption("New Auto", new PathPlannerAuto("New Auto"));
         autoChooser.addOption("Straight", new PathPlannerAuto("Straight"));
+
+        // Coral Cycle (Coral Station 1 and 2)
+        autoChooser.addOption("S1-CC", new PathPlannerAuto("S1-CC"));
+        autoChooser.addOption("S2-CS1-CC", new PathPlannerAuto("S2-CS1-CC"));
+        autoChooser.addOption("S2-CS2-CC", new PathPlannerAuto("S2-CS2-CC"));
+        autoChooser.addOption("S3-CC", new PathPlannerAuto("S3-CC"));
+
+        // Algae Proccessor - Coral Cycle
+        autoChooser.addOption("S1-AP-CC", new PathPlannerAuto("S1-AP-CC"));
+        autoChooser.addOption("S2-AP-CC", new PathPlannerAuto("S2-AP-CC"));
+        autoChooser.addOption("S3-AP-CC", new PathPlannerAuto("S3-AP-CC"));
+
+        // Opposite Coral Station - Coral Cycle (Sweep and No Sweep)
+        autoChooser.addOption("S1-OCS-CC", new PathPlannerAuto("S1-OCS-CC"));
+        autoChooser.addOption("S1-OCS-S-CC", new PathPlannerAuto("S1-OCS-S-CC"));
+        autoChooser.addOption("S2-CS1-OCS-CC", new PathPlannerAuto("S2-CS1-OCS-CC"));
+        autoChooser.addOption("S2-CS1-OCS-S-CC", new PathPlannerAuto("S2-CS1-OCS-S-CC"));
+        autoChooser.addOption("S2-CS2-OCS-CC", new PathPlannerAuto("S2-CS2-OCS-CC"));
+        autoChooser.addOption("S2-CS2-OCS-S-CC", new PathPlannerAuto("S2-CS2-OCS-S-CC"));
+        autoChooser.addOption("S3-OCS-CC", new PathPlannerAuto("S3-OCS-CC"));
+        autoChooser.addOption("S3-OCS-S-CC", new PathPlannerAuto("S3-OCS-S-CC"));
+
+        // Shooting Position - Coral Cycle
+        // autoChooser.addOption("", new PathPlannerAuto(""));
+        // autoChooser.addOption("", new PathPlannerAuto(""));
+        // autoChooser.addOption("", new PathPlannerAuto(""));
+        // autoChooser.addOption("", new PathPlannerAuto(""));
+        // autoChooser.addOption("", new PathPlannerAuto("")); v 
+        // autoChooser.addOption("", new PathPlannerAuto(""));
 
         SmartDashboard.putData("autoChooser",autoChooser);
     }
