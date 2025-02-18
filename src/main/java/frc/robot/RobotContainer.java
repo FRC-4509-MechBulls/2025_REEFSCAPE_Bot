@@ -232,12 +232,12 @@ public class RobotContainer {
         autoChooser.addOption("S3-OCS-S-CC", new PathPlannerAuto("S3-OCS-S-CC"));
 
         // Shooting Position - Coral Cycle
-        // autoChooser.addOption("", new PathPlannerAuto(""));
-        // autoChooser.addOption("", new PathPlannerAuto(""));
-        // autoChooser.addOption("", new PathPlannerAuto(""));
-        // autoChooser.addOption("", new PathPlannerAuto(""));
-        // autoChooser.addOption("", new PathPlannerAuto("")); v 
-        // autoChooser.addOption("", new PathPlannerAuto(""));
+        autoChooser.addOption("S1-SP2-AC", new PathPlannerAuto("S1-SP2-AC"));
+        autoChooser.addOption("S1-SP1-AC", new PathPlannerAuto("S1-SP1-AC"));
+        autoChooser.addOption("S2-SP2-AC", new PathPlannerAuto("S2-SP2-AC"));
+        autoChooser.addOption("S2-SP1-AC", new PathPlannerAuto("S2-SP1-AC"));
+        autoChooser.addOption("S3-SP2-AC", new PathPlannerAuto("S3-SP2-AC"));
+        autoChooser.addOption("S3-SP1-AC", new PathPlannerAuto("S3-SP1-AC"));
 
         SmartDashboard.putData("autoChooser",autoChooser);
     }
