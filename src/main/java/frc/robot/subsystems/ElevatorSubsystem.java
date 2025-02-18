@@ -3,6 +3,7 @@ package frc.robot.subsystems;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.MotionMagicDutyCycle;
+import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.revrobotics.AbsoluteEncoder;
@@ -21,13 +22,14 @@ public class ElevatorSubsystem extends SubsystemBase{
     private double zeroHeight;
     PIDController elevatorController;
     public double targetHeight;
+    public double lastPosition;
+    public int rotationCount;
+    public double currentPosition;
 
     TalonFX coralClaw;
-    DutyCycleEncoder clawEncoder;
-    private double clawZeroOffset;
-    PIDController clawController;
-    private boolean clawExtended;
-    private double targetClaw;
+
+    double elevatorGearRatio = 1;
+    private final PositionVoltage positionRequest = new PositionVoltage(0);
 
     public ElevatorSubsystem() {
 
@@ -38,49 +40,38 @@ public class ElevatorSubsystem extends SubsystemBase{
         elevatorMotorConfig.CurrentLimits.StatorCurrentLimitEnable = true;
         elevatorMotorConfig.CurrentLimits.SupplyCurrentLimit = 40;
         elevatorMotorConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
+        elevatorMotorConfig.Slot0.kP = Constants.ElevatorConstants.elevatorkp;
+        elevatorMotorConfig.Slot0.kI = Constants.ElevatorConstants.elevatorki;
+        elevatorMotorConfig.Slot0.kD = Constants.ElevatorConstants.elevatorkd;
+        elevatorMotorConfig.Slot0.kV = 0;
         elevator.getConfigurator().apply(elevatorMotorConfig);
 
         elevatorEncoder = new DutyCycleEncoder(Constants.ElevatorConstants.elevatorEncoderChannel);
-        zeroHeight = Constants.ElevatorConstants.elevatorEncoderZeroHeight;
-        targetHeight = zeroHeight;
+        lastPosition = elevatorEncoder.get();
 
         elevatorController = new PIDController(Constants.ElevatorConstants.elevatorkp, Constants.ElevatorConstants.elevatorki, Constants.ElevatorConstants.elevatorkd);
         elevatorController.setSetpoint(Constants.ElevatorConstants.holdingHeight);
         elevatorController.setTolerance(2); // Inches of error
+
         
         coralClaw = new TalonFX(Constants.ElevatorConstants.clawMotorID);
         coralClaw.getConfigurator().apply(elevatorMotorConfig); // They have the same configs, might as well reuse it
 
-        clawEncoder = new DutyCycleEncoder(Constants.ElevatorConstants.clawEncoderChannel);
-        clawZeroOffset = Constants.ElevatorConstants.clawZeroOffset;
-
-        clawController = new PIDController(Constants.ElevatorConstants.clawkp, Constants.ElevatorConstants.clawki, Constants.ElevatorConstants.clawkd);
-        clawController.setSetpoint(Constants.ElevatorConstants.clawRetractedAngle);
-        clawController.setTolerance(5);
-
-        clawExtended = false;
-        targetClaw = Constants.ElevatorConstants.clawRetractedAngle;
 
     }
 
     public void setHeight(double desiredHeight){
         targetHeight = desiredHeight;
         elevatorController.setSetpoint(desiredHeight);
-    }
-    
-    public void setClawExtended(boolean extended){
-        clawExtended = extended;
-        if(extended){
-            clawController.setSetpoint(Constants.ElevatorConstants.clawExtendedAngle);
-            targetClaw = Constants.ElevatorConstants.clawExtendedAngle;
-        }
-        else {
-            clawController.setSetpoint(Constants.ElevatorConstants.clawRetractedAngle);
-            targetClaw = Constants.ElevatorConstants.clawRetractedAngle;
-        }
+
+        double ticks = targetHeight * elevatorGearRatio;
+
+   //     elevator.setControl(positionRequest.withPosition(ticks).withFeedForward(0.1));
+
     }
 
     public void periodic() {
+        currentPosition = getContinuousPosition();
 //        elevator.setControl(new MotionMagicDutyCycle(targetHeight)); // Get rid of the PIDController?
 //        coralClaw.setControl(new MotionMagicDutyCycle(targetClaw));
 
@@ -91,14 +82,36 @@ public class ElevatorSubsystem extends SubsystemBase{
   //      coralClaw.set(clawController.calculate((clawEncoder.get()-clawZeroOffset)*360)); 
 
         updateSmartDashboard();
+        
     }
 
     public void updateSmartDashboard(){
-        SmartDashboard.putBoolean("Claw Extended", clawExtended);
-        SmartDashboard.putNumber("Claw Error", clawController.getError());
-        SmartDashboard.putNumber("Elevator Height", (elevatorEncoder.get()*Constants.ElevatorConstants.distancePerRotation-zeroHeight)*Constants.ElevatorConstants.distancePerRotation);
-        SmartDashboard.putNumber("Elevator Error", elevatorController.getError());
+        SmartDashboard.putNumber("rawElevatorEncoder", elevatorEncoder.get());
+        SmartDashboard.putNumber("continuousPosition", getContinuousPosition());
     }
     
+    public void outputCoral(){
+        coralClaw.set(0.2);
+    }
+    public void retractCoral(){
+        coralClaw.set(-0.1);
+    }
+    public void stopCoral(){
+        coralClaw.set(0);
+    }
+
+    public double getContinuousPosition(){
+        double currentPosition = elevatorEncoder.get();
+
+        if(lastPosition > 0.9 && currentPosition < 0.1){
+            rotationCount++;
+        } else if (lastPosition<0.1 && currentPosition>0.9) {
+            rotationCount--;
+        }
+
+        lastPosition = currentPosition;
+
+        return rotationCount + currentPosition;
+    }
 
 }

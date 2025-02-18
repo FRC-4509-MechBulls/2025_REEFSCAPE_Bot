@@ -28,10 +28,12 @@ public class ShooterSubsystem extends SubsystemBase{
     DutyCycleEncoder absoluteEncoder;
     PIDController armUpwardPIDController;
     PIDController armDownwardPIDController;
+    PIDController armUpward2PIDController;
+
+
 
     SparkMax arm;
-    SparkMax lowerEF;
-    SparkMax upperEF;
+    SparkMax armEF;
 
     SparkMaxConfig config;
 
@@ -41,10 +43,9 @@ public class ShooterSubsystem extends SubsystemBase{
     public ShooterSubsystem() {
         
         absoluteEncoder = new DutyCycleEncoder(Constants.ShooterConstants.shooterArmEncoderChannel);
-        
+
         arm = new SparkMax(Constants.ShooterConstants.armID, MotorType.kBrushless); // Brake Mode must be configured physically, not through code
-        lowerEF = new SparkMax(Constants.ShooterConstants.armLowerEFID, MotorType.kBrushless);
-        upperEF = new SparkMax(Constants.ShooterConstants.armUpperEFID, MotorType.kBrushless);
+        armEF = new SparkMax(Constants.ShooterConstants.armEFID, MotorType.kBrushless);
 
         config = new SparkMaxConfig();
 
@@ -54,8 +55,7 @@ public class ShooterSubsystem extends SubsystemBase{
         config.voltageCompensation(12);
         
         arm.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-        lowerEF.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-        upperEF.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+        armEF.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
         zeroOffset = Constants.ShooterConstants.zeroOffset;
         desiredAngle = Constants.ShooterConstants.holdingAngle;
@@ -63,6 +63,10 @@ public class ShooterSubsystem extends SubsystemBase{
         armUpwardPIDController = new PIDController(Constants.ShooterConstants.armUpwardkp, Constants.ShooterConstants.armUpwardki, Constants.ShooterConstants.armUpwardkd);
         armUpwardPIDController.setIZone(15);
         armUpwardPIDController.setSetpoint(desiredAngle);
+
+        armUpward2PIDController = new PIDController(Constants.ShooterConstants.armUpward2kp, Constants.ShooterConstants.armUpward2ki, Constants.ShooterConstants.armUpward2kd);
+        armUpward2PIDController.setIZone(10);
+        armUpward2PIDController.setSetpoint(desiredAngle);
 
         armDownwardPIDController = new PIDController(Constants.ShooterConstants.armDownwardkp, Constants.ShooterConstants.armDownwardki, Constants.ShooterConstants.armDownwardkd);
         armDownwardPIDController.setIZone(10);
@@ -72,16 +76,22 @@ public class ShooterSubsystem extends SubsystemBase{
 
     public void periodic() {
 
-        if(((absoluteEncoder.get()*360+(zeroOffset*360))%360) > desiredAngle || desiredAngle == Constants.ShooterConstants.holdingAngle) { // If current angle is above setpoint, arm must go downwards
-            arm.setVoltage(armDownwardPIDController.calculate((absoluteEncoder.get()*360+(zeroOffset*360))%360));
+        if(((getContinuousPosition()+(zeroOffset*360))%360) > desiredAngle || desiredAngle == Constants.ShooterConstants.holdingAngle) { // If current angle is above setpoint, arm must go downwards
+            arm.setVoltage(armDownwardPIDController.calculate((getContinuousPosition()+(zeroOffset*360))%360));
         }
         else{ // Current angle is below setpoint, arm must go upwards
-            arm.setVoltage(armUpwardPIDController.calculate((absoluteEncoder.get()*360+(zeroOffset*360))%360));
+            if(desiredAngle>150){
+                arm.setVoltage(armUpwardPIDController.calculate((getContinuousPosition()+(zeroOffset*360))%360));
+            }
+            else{
+                arm.setVoltage(armUpwardPIDController.calculate((getContinuousPosition()+(zeroOffset*360))%360)/1.5);
+            }
+            
         }
         
         SmartDashboard.putNumber("algaeEncoderRotations", absoluteEncoder.get()+zeroOffset);
         SmartDashboard.putNumber("RawAbsoluteArmEncoder", (absoluteEncoder.get()*360)%360);
-        SmartDashboard.putNumber("OffsetAbsoluteArmEncoder", (absoluteEncoder.get()*360+(zeroOffset*360))%360);
+        SmartDashboard.putNumber("OffsetAbsoluteArmEncoder", (getContinuousPosition()+(zeroOffset*360))%360);
         SmartDashboard.putNumber("algaeUpwardSetpoint", armUpwardPIDController.getSetpoint());
         SmartDashboard.putNumber("algaeDownwardSetpoint", armDownwardPIDController.getSetpoint());
         
@@ -94,8 +104,13 @@ public class ShooterSubsystem extends SubsystemBase{
     }
 
     public void setEF(double speed){
-        lowerEF.set(-speed);
-        upperEF.set(speed);
+        armEF.set(-speed);
     }
-
+    public double getContinuousPosition() {
+        double position = absoluteEncoder.get() * 360;
+        if(position < 100) {
+            position+=360;
+        }
+        return position;
+    }
 }

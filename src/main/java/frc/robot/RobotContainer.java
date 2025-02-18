@@ -69,9 +69,6 @@ public class RobotContainer {
     InstantCommand setLevel3 = new InstantCommand(()->stateController.setLevel(Level.level3));
     InstantCommand setLevel4 = new InstantCommand(()->stateController.setLevel(Level.level4));
 
-    InstantCommand extendElevatorClaw = new InstantCommand(()->stateController.extendElevatorClaw()); // needed?
-    InstantCommand retractElevatorClaw = new InstantCommand(()->stateController.retractElevatorClaw());
-
     InstantCommand stopShooterEF = new InstantCommand(()->stateController.setShooterEF(0));
     InstantCommand intakeShooterEF = new InstantCommand(()->stateController.setShooterEF(Constants.ShooterConstants.shooterIntakeEFSpeed));
     InstantCommand shootShooterEF = new InstantCommand(()->stateController.setShooterEF(Constants.ShooterConstants.shooterShootEFSpeed));
@@ -86,10 +83,10 @@ public class RobotContainer {
     InstantCommand setProcessorMode = new InstantCommand(()->stateController.setAlgaeObjective(AlgaeObjective.processor));
     InstantCommand setNetMode = new InstantCommand(()->stateController.setAlgaeObjective(AlgaeObjective.net));
 
-    InstantCommand extendClimb = new InstantCommand(()->stateController.setClimb(Constants.ClimbConstants.climbAngle));
-    InstantCommand retractClimb = new InstantCommand(()->stateController.setClimb(0));
-
     InstantCommand alignToAprilTag = new InstantCommand(()->drivetrain.alignToAprilTag(vision.getPipelineResult(), vision.getAprilTagFieldLayout()));
+
+    RunCommand climbForward = new RunCommand(()->stateController.toggleClimb(.6));
+    RunCommand climbReverse = new RunCommand(()->stateController.toggleClimb(-.6));
 
     public RobotContainer() {
         configureBindings();
@@ -135,6 +132,10 @@ public class RobotContainer {
 
         driverController.rightTrigger().onTrue(setClimbMode);
         driverController.leftTrigger().onTrue(setHoldingMode);
+
+        driverController.povUp().whileTrue(climbForward);
+        driverController.povDown().whileTrue(climbReverse);
+
 
         operatorController.a().onTrue(setIntakeMode);
         operatorController.b().onTrue(setHoldingMode);

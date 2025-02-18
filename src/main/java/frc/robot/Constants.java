@@ -20,12 +20,12 @@ public class Constants {
 
         public static final double distancePerRotation = 2; // Inches
 
-        public static final double holdingHeight = 0 / distancePerRotation;
-        public static final double level1Height = 0 / distancePerRotation;
-        public static final double level2Height = 0 / distancePerRotation;
-        public static final double level3Height = 0 / distancePerRotation;
-        public static final double level4Height =  0 / distancePerRotation;
-        public static final double intakeHeight = 0 / distancePerRotation;
+        public static final double holdingHeight = 0.216;
+        public static final double level1Height = 1.544;
+        public static final double level2Height = 0.216;
+        public static final double level3Height = 0.216;
+        public static final double level4Height =  0.216;
+        public static final double intakeHeight = 1.133;
 
         public static final double elevatorIntakeEFSpeed = -0.5;
         public static final double elevatorEjectEFSpeed = 0.5;
@@ -33,15 +33,15 @@ public class Constants {
         public static final int elevatorMotorID = 25;
 
         public static final double elevatorEncoderZeroHeight = 0; // Degrees
-        public static final int elevatorEncoderChannel = 3;
+        public static final int elevatorEncoderChannel = 1;
 
         public static final double elevatorkp = 1;
-        public static final double elevatorki = .1;
-        public static final double elevatorkd = 0;
+        public static final double elevatorki = 0;
+        public static final double elevatorkd = 0.1;
 
         
 
-        public static final int clawMotorID = 0;
+        public static final int clawMotorID = 19;
         public static final int clawEncoderChannel = 5;
         public static final double clawZeroOffset = 0; // Measured in rotations
 
@@ -56,12 +56,12 @@ public class Constants {
     public static class ShooterConstants{
 
         // Measured in degrees
-        public static final double zeroOffset = 0.23; // Rotations, pointing horizontally left
-        public static final double holdingAngle = 90; // Directly downward
-        public static final double lowerReefAngle = 165;
-        public static final double upperReefAngle = 190;
-        public static final double processorAngle = 135;
-        public static final double netAngle = 235;
+        public static final double zeroOffset = 0.444; // Rotations, pointing horizontally left
+        public static final double holdingAngle = 46; // Directly downward
+        public static final double lowerReefAngle = 120;
+        public static final double upperReefAngle = 145;
+        public static final double processorAngle = 90;
+        public static final double netAngle = 200;
 
         public static final int shooterArmEncoderChannel = 0;
 
@@ -69,17 +69,20 @@ public class Constants {
         public static final double shooterShootEFSpeed = 1;
         public static final double shooterPlaceEFSpeed = .5;
 
-        public static final int armLowerEFID = 19;
-        public static final int armUpperEFID = 20;
+        public static final int armEFID = 20;
         public static final int armID = 17;
 
-        public static final double armUpwardkp = 0.075;
-        public static final double armUpwardki = 0.02;
-        public static final double armUpwardkd = 0.01;
+        public static final double armUpwardkp = 0.07; // .075
+        public static final double armUpwardki = 0.03; // .02
+        public static final double armUpwardkd = 0.01; // .01
 
-        public static final double armDownwardkp = 0.025;
-        public static final double armDownwardki = 0;
-        public static final double armDownwardkd = 0;
+        public static final double armUpward2kp = 0.06; // .075
+        public static final double armUpward2ki = 0.02; // .02
+        public static final double armUpward2kd = 0.0; // .01
+
+        public static final double armDownwardkp = 0.03; //.025
+        public static final double armDownwardki = 0.0;
+        public static final double armDownwardkd = 0.0;
 
     }
     public static class ClimbConstants{
@@ -87,7 +90,7 @@ public class Constants {
         public static final double defaultAngle = 0;
         public static final double climbAngle = 30;
 
-        public static final int climbMotorID = 0;
+        public static final int climbMotorID = 30;
 
         public static final double climbkp =.1;
         public static final double climbki = 0;

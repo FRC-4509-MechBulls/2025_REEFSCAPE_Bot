@@ -47,6 +47,7 @@ public class StateControllerSub extends SubsystemBase{
     private ElevatorSubsystem elevatorSubsystem;
     private ShooterSubsystem shooterSubsystem;
     private ClimbSubsystem climbSubsystem;
+    boolean climbed;
 
     public StateControllerSub() {
         state = State.holding;
@@ -60,6 +61,7 @@ public class StateControllerSub extends SubsystemBase{
         elevatorSubsystem = new ElevatorSubsystem();
         shooterSubsystem = new ShooterSubsystem();
         climbSubsystem = new ClimbSubsystem();
+        climbed = false;
     }
 
     private Pose2d robotPose = new Pose2d();
@@ -112,12 +114,6 @@ public class StateControllerSub extends SubsystemBase{
         }
     }
 
-    public void extendElevatorClaw(){
-        elevatorSubsystem.setClawExtended(true);
-    }
-    public void retractElevatorClaw() {
-        elevatorSubsystem.setClawExtended(false);
-    }
     public void setElevatorHeight(){
         if(state.equals(State.pre_placing)){
             switch(level){
@@ -150,9 +146,11 @@ public class StateControllerSub extends SubsystemBase{
     public void setShooterAngle(double angle){
         shooterSubsystem.rotateShooter(angle);
     }
-
-    public void setClimb(double position){
-        climbSubsystem.setAngle(position);
+    public void outputCoral(){
+        elevatorSubsystem.outputCoral();
+    }
+    public void stopCoral(){
+        elevatorSubsystem.stopCoral();
     }
 
     public void periodic() {
@@ -161,11 +159,11 @@ public class StateControllerSub extends SubsystemBase{
 
         switch(state){
             case holding: 
-                retractElevatorClaw();
+                stopCoral();
                 setElevatorHeight();
                 setShooterEF(0);
                 setShooterAngle(Constants.ShooterConstants.holdingAngle);
-                setClimb(0);
+                toggleClimb(0);
                 break;
 
             case intaking: 
@@ -179,7 +177,6 @@ public class StateControllerSub extends SubsystemBase{
                 }
                 else if(itemType.equals(ItemType.coral)){
                     elevatorSubsystem.setHeight(Constants.ElevatorConstants.intakeHeight);
-                    retractElevatorClaw(); // ?
                 }
                 break;
 
@@ -200,7 +197,7 @@ public class StateControllerSub extends SubsystemBase{
 
             case placing: 
                     if(itemType.equals(ItemType.coral)){
-                        extendElevatorClaw();
+                        outputCoral();
                     }
                     else if(itemType.equals(ItemType.algae)){
                         if(algaeObjective.equals(AlgaeObjective.net)){
@@ -215,7 +212,6 @@ public class StateControllerSub extends SubsystemBase{
                 setElevatorHeight();
                 setShooterAngle(0);
                 setShooterEF(0);
-                setClimb(Constants.ClimbConstants.climbAngle);
                 break;
         }
     }
@@ -256,5 +252,9 @@ public class StateControllerSub extends SubsystemBase{
                     algaeObjective = AlgaeObjective.net;
                 }
         }   
+    }
+
+    public void toggleClimb(double speed){
+        climbSubsystem.setSpeed(speed);
     }
 }
