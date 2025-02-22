@@ -1,6 +1,7 @@
 package frc.robot.subsystems;
 
 import com.revrobotics.spark.SparkMax;
+import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
@@ -11,6 +12,7 @@ import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.wpilibj.Encoder;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 
@@ -19,9 +21,10 @@ public class ClimbSubsystem extends SubsystemBase{
     SparkMax climb;
     SparkMaxConfig config;
     SoftLimitConfig softLimitConfig;
-    RelativeEncoder encoder;
 
     PIDController pidController;
+
+    AbsoluteEncoder encoder;
 
     double desiredPosition;
 
@@ -36,25 +39,31 @@ public class ClimbSubsystem extends SubsystemBase{
         config.softLimit.reverseSoftLimitEnabled(false);
         climb.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
-        encoder = climb.getEncoder();
-        encoder.setPosition(0);
+        encoder = climb.getAbsoluteEncoder();
 
         pidController = new PIDController(Constants.ClimbConstants.climbkp, Constants.ClimbConstants.climbki, Constants.ClimbConstants.climbkd);
         pidController.setSetpoint(0);
     }
 
-    public void setAngle(boolean climbing){
-  
-        
-    }
 
     public void setSpeed(double speed){
+        if(encoder.getPosition() > 0.95){
+            if(speed < 0){
+                speed = 0;
+            }
+        }
+        else if(encoder.getPosition() < 0.2){
+            if(speed > 0) {
+                speed = 0;
+            }
+        }
         climb.set(speed/4);
     }
 
     public void periodic() {
   //      climb.set((desiredPosition-encoder.getPosition())/100);
    //     climb.set(-.1);
+        SmartDashboard.putNumber("climbEncoder", encoder.getPosition()); 
     }
     
 }

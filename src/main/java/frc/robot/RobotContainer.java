@@ -18,9 +18,11 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.RepeatCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
+import frc.robot.StateControllerSub.AlgaeIntakeSource;
 import frc.robot.StateControllerSub.AlgaeObjective;
 import frc.robot.StateControllerSub.ItemType;
 import frc.robot.StateControllerSub.Level;
@@ -69,24 +71,21 @@ public class RobotContainer {
     InstantCommand setLevel3 = new InstantCommand(()->stateController.setLevel(Level.level3));
     InstantCommand setLevel4 = new InstantCommand(()->stateController.setLevel(Level.level4));
 
-    InstantCommand stopShooterEF = new InstantCommand(()->stateController.setShooterEF(0));
-    InstantCommand intakeShooterEF = new InstantCommand(()->stateController.setShooterEF(Constants.ShooterConstants.shooterIntakeEFSpeed));
-    InstantCommand shootShooterEF = new InstantCommand(()->stateController.setShooterEF(Constants.ShooterConstants.shooterShootEFSpeed));
-    InstantCommand ejectShooterEF = new InstantCommand(()->stateController.setShooterEF(Constants.ShooterConstants.shooterPlaceEFSpeed));
-
-    InstantCommand setShooterLowerReef = new InstantCommand(()->stateController.setShooterAngle(Constants.ShooterConstants.lowerReefAngle));
-    InstantCommand setShooterUpperReef = new InstantCommand(()->stateController.setShooterAngle(Constants.ShooterConstants.upperReefAngle));
-    InstantCommand setShooterNet = new InstantCommand(()->stateController.setShooterAngle(Constants.ShooterConstants.netAngle));
-    InstantCommand setShooterProcessor = new InstantCommand(()->stateController.setShooterAngle(Constants.ShooterConstants.processorAngle));
-    InstantCommand setShooterHolding = new InstantCommand(()->stateController.setShooterAngle(Constants.ShooterConstants.holdingAngle));
+    InstantCommand setShooterIntakeLevel3 = new InstantCommand(()->stateController.setAlgaeIntakeSource(AlgaeIntakeSource.level3));
+    InstantCommand setShooterIntakeLevel2 = new InstantCommand(()->stateController.setAlgaeIntakeSource(AlgaeIntakeSource.level2));
 
     InstantCommand setProcessorMode = new InstantCommand(()->stateController.setAlgaeObjective(AlgaeObjective.processor));
     InstantCommand setNetMode = new InstantCommand(()->stateController.setAlgaeObjective(AlgaeObjective.net));
 
     InstantCommand alignToAprilTag = new InstantCommand(()->drivetrain.alignToAprilTag(vision.getPipelineResult(), vision.getAprilTagFieldLayout()));
 
-    RunCommand climbForward = new RunCommand(()->stateController.toggleClimb(.6));
-    RunCommand climbReverse = new RunCommand(()->stateController.toggleClimb(-.6));
+//    RunCommand climbForward = new RunCommand(()->stateController.toggleClimb(.6));
+//    RunCommand climbReverse = new RunCommand(()->stateController.toggleClimb(-.6));
+    RunCommand climbStop = new RunCommand(()->stateController.toggleClimb(0));
+
+    RepeatCommand climbForward = new RepeatCommand(new InstantCommand(()->stateController.toggleClimb(.6)));
+    RepeatCommand climbReverse = new RepeatCommand(new InstantCommand(()->stateController.toggleClimb(-.6)));
+//    RepeatCommand climbStop = new RepeatCommand(new InstantCommand(()->stateController.toggleClimb(0)));
 
     public RobotContainer() {
         configureBindings();
@@ -96,7 +95,7 @@ public class RobotContainer {
         // Note that X is defined as forward according to WPILib convention,
         // and Y is defined as to the left according to WPILib convention.
 
-/* 
+/*  
          drivetrain.setDefaultCommand(
             // Drivetrain will execute this command periodically
             drivetrain.applyRequest(() ->
@@ -105,7 +104,8 @@ public class RobotContainer {
                     .withRotationalRate(-driverController.getRightX() * MaxAngularRate) // Drive counterclockwise with negative X (left)
             )
         );
-
+    */
+/* 
         driverController.rightBumper().whileTrue(drivetrain.applyRequest(()->
                 robotCentricDrive.withVelocityX(-driverController.getLeftY() * MaxSpeed)
                 .withVelocityY(-driverController.getLeftX() * MaxSpeed)
@@ -135,6 +135,7 @@ public class RobotContainer {
 
         driverController.povUp().whileTrue(climbForward);
         driverController.povDown().whileTrue(climbReverse);
+        driverController.povLeft().whileTrue(climbStop);
 
 
         operatorController.a().onTrue(setIntakeMode);
@@ -152,6 +153,8 @@ public class RobotContainer {
         operatorController.leftBumper().onTrue(new InstantCommand(()->stateController.leftBumper()));
         operatorController.leftTrigger().onTrue(new InstantCommand(()->stateController.leftTrigger()));
 
+        operatorController.axisGreaterThan(0, .1).whileTrue(new InstantCommand(()->stateController.outputCoral()));
+        operatorController.axisLessThan(0, -.1).whileTrue(new InstantCommand(()->stateController.reverseCoral()));
 
         drivetrain.registerTelemetry(logger::telemeterize);
         

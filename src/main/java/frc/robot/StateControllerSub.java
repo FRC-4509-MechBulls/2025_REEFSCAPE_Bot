@@ -152,6 +152,9 @@ public class StateControllerSub extends SubsystemBase{
     public void stopCoral(){
         elevatorSubsystem.stopCoral();
     }
+    public void reverseCoral(){
+        elevatorSubsystem.retractCoral();
+    }
 
     public void periodic() {
         updateSmartDashboard();
@@ -257,4 +260,9 @@ public class StateControllerSub extends SubsystemBase{
     public void toggleClimb(double speed){
         climbSubsystem.setSpeed(speed);
     }
+    public void setShooterIntakeSource(AlgaeIntakeSource algaeIntakeSource){
+        this.algaeIntakeSource = algaeIntakeSource;
+    }
+    
+
 }

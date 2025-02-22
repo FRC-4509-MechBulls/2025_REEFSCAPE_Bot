@@ -57,7 +57,7 @@ public class ElevatorSubsystem extends SubsystemBase{
         coralClaw = new TalonFX(Constants.ElevatorConstants.clawMotorID);
         coralClaw.getConfigurator().apply(elevatorMotorConfig); // They have the same configs, might as well reuse it
 
-
+        rotationCount = 0;
     }
 
     public void setHeight(double desiredHeight){
@@ -72,22 +72,23 @@ public class ElevatorSubsystem extends SubsystemBase{
 
     public void periodic() {
         currentPosition = getContinuousPosition();
+
+ //       elevator.setVoltage(elevatorController.calculate(getContinuousPosition(), targetHeight));
+
 //        elevator.setControl(new MotionMagicDutyCycle(targetHeight)); // Get rid of the PIDController?
 //        coralClaw.setControl(new MotionMagicDutyCycle(targetClaw));
 
-  //      elevatorController.calculate((elevatorEncoder.get()-zeroHeight)*Constants.ElevatorConstants.distancePerRotation);
-   
-   //     clawController.calculate((clawEncoder.get()-clawZeroOffset)*360);
-
-  //      coralClaw.set(clawController.calculate((clawEncoder.get()-clawZeroOffset)*360)); 
-
         updateSmartDashboard();
+
+        SmartDashboard.putNumber("rawElevatorEncoder", elevatorEncoder.get());
+        SmartDashboard.putNumber("continuousPosition", getContinuousPosition());
+        SmartDashboard.putBoolean("elevatorEncoderConnected",elevatorEncoder.isConnected());
+        SmartDashboard.putNumber("elevatorEncoderFrequency", elevatorEncoder.getFrequency());
         
     }
 
     public void updateSmartDashboard(){
-        SmartDashboard.putNumber("rawElevatorEncoder", elevatorEncoder.get());
-        SmartDashboard.putNumber("continuousPosition", getContinuousPosition());
+        
     }
     
     public void outputCoral(){

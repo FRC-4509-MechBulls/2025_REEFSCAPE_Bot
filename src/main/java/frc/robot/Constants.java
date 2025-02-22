@@ -33,11 +33,11 @@ public class Constants {
         public static final int elevatorMotorID = 25;
 
         public static final double elevatorEncoderZeroHeight = 0; // Degrees
-        public static final int elevatorEncoderChannel = 1;
+        public static final int elevatorEncoderChannel = 2;
 
-        public static final double elevatorkp = 1;
+        public static final double elevatorkp = 0.25;
         public static final double elevatorki = 0;
-        public static final double elevatorkd = 0.1;
+        public static final double elevatorkd = 0;
 
         
 
@@ -57,11 +57,11 @@ public class Constants {
 
         // Measured in degrees
         public static final double zeroOffset = 0.444; // Rotations, pointing horizontally left
-        public static final double holdingAngle = 46; // Directly downward
-        public static final double lowerReefAngle = 120;
-        public static final double upperReefAngle = 145;
+        public static final double holdingAngle = 90; // Directly downward
+        public static final double lowerReefAngle = 165;
+        public static final double upperReefAngle = 190;
         public static final double processorAngle = 90;
-        public static final double netAngle = 200;
+        public static final double netAngle = 245;
 
         public static final int shooterArmEncoderChannel = 0;
 
