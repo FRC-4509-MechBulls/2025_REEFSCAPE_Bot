@@ -10,9 +10,12 @@ import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.NamedCommands;
 import com.pathplanner.lib.commands.PathPlannerAuto;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.SparkMax;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -28,6 +31,7 @@ import frc.robot.StateControllerSub.ItemType;
 import frc.robot.StateControllerSub.Level;
 import frc.robot.StateControllerSub.State;
 import frc.robot.generated.TunerConstants;
+import frc.robot.subsystems.ClimbySubsystem;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.VisionSubsystem;
@@ -35,6 +39,7 @@ import frc.robot.subsystems.VisionSubsystem;
 public class RobotContainer {
     private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
     private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
+    private ClimbySubsystem climbySubsystem = new ClimbySubsystem();  
 
     /* Setting up bindings for necessary control of the swerve drive platform */
     private final SwerveRequest.RobotCentric robotCentricDrive = new SwerveRequest.RobotCentric()
@@ -102,6 +107,7 @@ public class RobotContainer {
                 fieldCentricDrive.withVelocityX(-driverController.getLeftY() * MaxSpeed) // Drive forward with negative Y (forward)
                     .withVelocityY(-driverController.getLeftX() * MaxSpeed) // Drive left with negative X (left)
                     .withRotationalRate(-driverController.getRightX() * MaxAngularRate) // Drive counterclockwise with negative X (left)
+        
             )
         );
     */
@@ -161,16 +167,80 @@ public class RobotContainer {
         registerNamedCommands();
         createAutos();
     }
+
+    public CommandXboxController getController(){
+        return driverController;
+    }
+    
     public void registerNamedCommands() {
         NamedCommands.registerCommand("command name", new InstantCommand());
+        NamedCommands.registerCommand("setIntakeMode", setIntakeMode);
+        NamedCommands.registerCommand("setHoldingMode", setHoldingMode);
+        NamedCommands.registerCommand("setPrePlacingMode", setPrePlacingMode);
+        NamedCommands.registerCommand("setPlacingMode", setPlacingMode);
+        NamedCommands.registerCommand("setClimbMode", setClimbMode);
+
+        NamedCommands.registerCommand("setAlgaeMode", setAlgaeMode);
+        NamedCommands.registerCommand("setCoralMode", setCoralMode);
+
+        NamedCommands.registerCommand("setLevel1", setLevel1);
+        NamedCommands.registerCommand("setLevel2", setLevel2);
+        NamedCommands.registerCommand("setLevel3", setLevel3);
+        NamedCommands.registerCommand("setLevel4", setLevel4);
+
+        NamedCommands.registerCommand("stopShooterEF", stopShooterEF);
+        NamedCommands.registerCommand("intakeShooterEF", intakeShooterEF);
+        NamedCommands.registerCommand("shootShooterEF", shootShooterEF);
+        NamedCommands.registerCommand("ejectShooterEF", ejectShooterEF);
+
+        NamedCommands.registerCommand("setShooterLowerReef", setShooterLowerReef);
+        NamedCommands.registerCommand("setShooterUpperReef", setShooterUpperReef);
+        NamedCommands.registerCommand("setShooterNet", setShooterNet);
+        NamedCommands.registerCommand("setShooterProcessor", setShooterProcessor);
+        NamedCommands.registerCommand("setShooterHolding", setShooterHolding);
+
+        NamedCommands.registerCommand("setProcessorMode", setProcessorMode);
+        NamedCommands.registerCommand("setNetMode", setNetMode);
+
+        NamedCommands.registerCommand("alignToAprilTag", alignToAprilTag);
 
     }
     public void createAutos(){
         autoChooser.setDefaultOption("no auto", null);
 
+        // Trouble Shooting - Basic
         autoChooser.addOption("Auto", new PathPlannerAuto("Auto"));
         autoChooser.addOption("New Auto", new PathPlannerAuto("New Auto"));
         autoChooser.addOption("Straight", new PathPlannerAuto("Straight"));
+
+        // Coral Cycle (Coral Station 1 and 2)
+        autoChooser.addOption("S1-CC", new PathPlannerAuto("S1-CC"));
+        autoChooser.addOption("S2-CS1-CC", new PathPlannerAuto("S2-CS1-CC"));
+        autoChooser.addOption("S2-CS2-CC", new PathPlannerAuto("S2-CS2-CC"));
+        autoChooser.addOption("S3-CC", new PathPlannerAuto("S3-CC"));
+
+        // Algae Proccessor - Coral Cycle
+        autoChooser.addOption("S1-AP-CC", new PathPlannerAuto("S1-AP-CC"));
+        autoChooser.addOption("S2-AP-CC", new PathPlannerAuto("S2-AP-CC"));
+        autoChooser.addOption("S3-AP-CC", new PathPlannerAuto("S3-AP-CC"));
+
+        // Opposite Coral Station - Coral Cycle (Sweep and No Sweep)
+        autoChooser.addOption("S1-OCS-CC", new PathPlannerAuto("S1-OCS-CC"));
+        autoChooser.addOption("S1-OCS-S-CC", new PathPlannerAuto("S1-OCS-S-CC"));
+        autoChooser.addOption("S2-CS1-OCS-CC", new PathPlannerAuto("S2-CS1-OCS-CC"));
+        autoChooser.addOption("S2-CS1-OCS-S-CC", new PathPlannerAuto("S2-CS1-OCS-S-CC"));
+        autoChooser.addOption("S2-CS2-OCS-CC", new PathPlannerAuto("S2-CS2-OCS-CC"));
+        autoChooser.addOption("S2-CS2-OCS-S-CC", new PathPlannerAuto("S2-CS2-OCS-S-CC"));
+        autoChooser.addOption("S3-OCS-CC", new PathPlannerAuto("S3-OCS-CC"));
+        autoChooser.addOption("S3-OCS-S-CC", new PathPlannerAuto("S3-OCS-S-CC"));
+
+        // Shooting Position - Coral Cycle
+        autoChooser.addOption("S1-SP2-AC", new PathPlannerAuto("S1-SP2-AC"));
+        autoChooser.addOption("S1-SP1-AC", new PathPlannerAuto("S1-SP1-AC"));
+        autoChooser.addOption("S2-SP2-AC", new PathPlannerAuto("S2-SP2-AC"));
+        autoChooser.addOption("S2-SP1-AC", new PathPlannerAuto("S2-SP1-AC"));
+        autoChooser.addOption("S3-SP2-AC", new PathPlannerAuto("S3-SP2-AC"));
+        autoChooser.addOption("S3-SP1-AC", new PathPlannerAuto("S3-SP1-AC"));
 
         SmartDashboard.putData("autoChooser",autoChooser);
     }

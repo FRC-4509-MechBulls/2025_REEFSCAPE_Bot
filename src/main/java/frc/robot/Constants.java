@@ -16,6 +16,7 @@ import frc.robot.subsystems.VisionSubsystem;
 
 public class Constants {
     
+    
     public static class ElevatorConstants{
 
         public static final double distancePerRotation = 2; // Inches
