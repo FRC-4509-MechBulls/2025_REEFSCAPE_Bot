@@ -49,10 +49,12 @@ public class StateControllerSub extends SubsystemBase{
     private ClimbSubsystem climbSubsystem;
     boolean climbed;
 
+    boolean holdingAlgae;
+
     public StateControllerSub() {
         state = State.holding;
         State lastState = State.holding;
-        itemType = ItemType.algae;
+        itemType = ItemType.coral;
         level = Level.level1;
         algaeObjective = AlgaeObjective.processor;
         algaeIntakeSource = AlgaeIntakeSource.level2;
@@ -62,6 +64,9 @@ public class StateControllerSub extends SubsystemBase{
         shooterSubsystem = new ShooterSubsystem();
         climbSubsystem = new ClimbSubsystem();
         climbed = false;
+
+        holdingAlgae = false;
+        
     }
 
     private Pose2d robotPose = new Pose2d();
@@ -159,14 +164,20 @@ public class StateControllerSub extends SubsystemBase{
     public void periodic() {
         updateSmartDashboard();
         updatePoseFromVision();
+        holdingAlgae = SmartDashboard.getBoolean("holdingAlgae", true);
 
         switch(state){
             case holding: 
                 stopCoral();
                 setElevatorHeight();
                 setShooterEF(0);
-                setShooterAngle(Constants.ShooterConstants.holdingAngle);
-                toggleClimb(0);
+                if(holdingAlgae){
+                    setShooterAngle(Constants.ShooterConstants.holdingAngle);
+                } else{
+                    setShooterAngle(Constants.ShooterConstants.holdingNoAlgaeAngle);
+                }
+                
+                // toggleClimb(0);
                 break;
 
             case intaking: 
@@ -186,7 +197,6 @@ public class StateControllerSub extends SubsystemBase{
             case pre_placing: 
                 if(itemType.equals(ItemType.coral)){
                     setElevatorHeight();
-                    // CommandSwerveDrivetrain.align();
                 }
                 else if(itemType.equals(ItemType.algae)){
                     if(algaeObjective.equals(AlgaeObjective.net)){
@@ -225,9 +235,12 @@ public class StateControllerSub extends SubsystemBase{
         SmartDashboard.putString("Level", level.toString());
         SmartDashboard.putString("Algae Objective", algaeObjective.toString());
         SmartDashboard.putString("Algae Intake Source", algaeIntakeSource.toString());
+        SmartDashboard.putBoolean("holdingAlgae", holdingAlgae);
     }
 
-
+    public void toggleHoldingAlgae() {
+        holdingAlgae = !holdingAlgae;
+    }
 
     public void rightBumper() {
         if(state.equals(State.holding)){
@@ -262,6 +275,9 @@ public class StateControllerSub extends SubsystemBase{
     }
     public void setShooterIntakeSource(AlgaeIntakeSource algaeIntakeSource){
         this.algaeIntakeSource = algaeIntakeSource;
+    }
+    public ElevatorSubsystem getElevator(){
+        return elevatorSubsystem;
     }
     
 

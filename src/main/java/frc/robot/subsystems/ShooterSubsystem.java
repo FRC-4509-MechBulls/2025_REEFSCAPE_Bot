@@ -31,7 +31,6 @@ public class ShooterSubsystem extends SubsystemBase{
 
     PIDController armUpwardPIDController;
     PIDController armDownwardPIDController;
-    PIDController armUpward2PIDController;
 
     SparkMax arm;
     SparkMax armEF;
@@ -43,13 +42,12 @@ public class ShooterSubsystem extends SubsystemBase{
 
     public ShooterSubsystem() {
         
-        encoderDioPort = new DigitalInput(0);
-        absoluteEncoder = new DutyCycleEncoder(encoderDioPort);
+        absoluteEncoder = new DutyCycleEncoder(Constants.ShooterConstants.shooterArmEncoderChannel);
 
     //    absoluteEncoder = new DutyCycleEncoder(Constants.ShooterConstants.shooterArmEncoderChannel);
 
-        arm = new SparkMax(Constants.ShooterConstants.armID, MotorType.kBrushless); // Brake Mode must be configured physically, not through code
-        armEF = new SparkMax(Constants.ShooterConstants.armEFID, MotorType.kBrushless);
+ //       arm = new SparkMax(Constants.ShooterConstants.armID, MotorType.kBrushless); // Brake Mode must be configured physically, not through code
+ //       armEF = new SparkMax(Constants.ShooterConstants.armEFID, MotorType.kBrushless);
 
         config = new SparkMaxConfig();
 
@@ -58,8 +56,8 @@ public class ShooterSubsystem extends SubsystemBase{
         config.smartCurrentLimit(40, 40);
         config.voltageCompensation(12);
         
-        arm.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-        armEF.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+  //      arm.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+  //      armEF.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
         zeroOffset = Constants.ShooterConstants.zeroOffset;
         desiredAngle = Constants.ShooterConstants.holdingAngle;
@@ -67,14 +65,13 @@ public class ShooterSubsystem extends SubsystemBase{
         armUpwardPIDController = new PIDController(Constants.ShooterConstants.armUpwardkp, Constants.ShooterConstants.armUpwardki, Constants.ShooterConstants.armUpwardkd);
         armUpwardPIDController.setIZone(15);
         armUpwardPIDController.setSetpoint(desiredAngle);
-
-        armUpward2PIDController = new PIDController(Constants.ShooterConstants.armUpward2kp, Constants.ShooterConstants.armUpward2ki, Constants.ShooterConstants.armUpward2kd);
-        armUpward2PIDController.setIZone(10);
-        armUpward2PIDController.setSetpoint(desiredAngle);
+        armUpwardPIDController.setTolerance(5);
 
         armDownwardPIDController = new PIDController(Constants.ShooterConstants.armDownwardkp, Constants.ShooterConstants.armDownwardki, Constants.ShooterConstants.armDownwardkd);
         armDownwardPIDController.setIZone(10);
         armDownwardPIDController.setSetpoint(desiredAngle);
+        armDownwardPIDController.setTolerance(5);
+        
 
  
     }
@@ -82,14 +79,14 @@ public class ShooterSubsystem extends SubsystemBase{
     public void periodic() {
 
         if(((getContinuousPosition()+(zeroOffset*360))%360) > desiredAngle || desiredAngle == Constants.ShooterConstants.holdingAngle) { // If current angle is above setpoint, arm must go downwards
- //           arm.setVoltage(armDownwardPIDController.calculate((getContinuousPosition()+(zeroOffset*360))%360));
+  //          arm.setVoltage(armDownwardPIDController.calculate((getContinuousPosition()+(zeroOffset*360))%360));
         }
         else{ // Current angle is below setpoint, arm must go upwards
             if(desiredAngle>150){
- //               arm.setVoltage(armUpwardPIDController.calculate((getContinuousPosition()+(zeroOffset*360))%360));
+  //              arm.setVoltage(armUpwardPIDController.calculate((getContinuousPosition()+(zeroOffset*360))%360));
             }
             else{
- //               arm.setVoltage(armUpwardPIDController.calculate((getContinuousPosition()+(zeroOffset*360))%360)/1.5);
+  //              arm.setVoltage(armUpwardPIDController.calculate((getContinuousPosition()+(zeroOffset*360))%360)/1.5);
             }
             
         }
@@ -117,11 +114,11 @@ public class ShooterSubsystem extends SubsystemBase{
     }
 
     public void setEF(double speed){
-        armEF.set(speed);
+//        armEF.set(speed);
     }
     public double getContinuousPosition() {
         double position = absoluteEncoder.get() * 360;
-        if(position < 100) {
+        if(position < 150) {
             position+=360;
         }
         return position;

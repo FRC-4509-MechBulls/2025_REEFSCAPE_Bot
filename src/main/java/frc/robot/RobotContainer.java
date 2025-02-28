@@ -11,8 +11,10 @@ import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.NamedCommands;
 import com.pathplanner.lib.commands.PathPlannerAuto;
 
+import commands.IntakeCoral;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.simulation.ElevatorSim;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -29,11 +31,12 @@ import frc.robot.StateControllerSub.Level;
 import frc.robot.StateControllerSub.State;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
+import frc.robot.subsystems.ElevatorSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.VisionSubsystem;
 
 public class RobotContainer {
-    private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
+    private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond) * Constants.DriveConstants.maxSpeed; // kSpeedAt12Volts desired top speed
     private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
 
     /* Setting up bindings for necessary control of the swerve drive platform */
@@ -54,6 +57,7 @@ public class RobotContainer {
     public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
     private final StateControllerSub stateController = new StateControllerSub();
     private final VisionSubsystem vision = stateController.getVisionSubsystem();
+    private final ElevatorSubsystem elevator = stateController.getElevator();
 
     SendableChooser<Command> autoChooser = new SendableChooser<>();
 
@@ -87,6 +91,10 @@ public class RobotContainer {
     RepeatCommand climbReverse = new RepeatCommand(new InstantCommand(()->stateController.toggleClimb(-.6)));
 //    RepeatCommand climbStop = new RepeatCommand(new InstantCommand(()->stateController.toggleClimb(0)));
 
+    RunCommand stopCoral = new RunCommand(()->stateController.stopCoral());
+    RepeatCommand outputCoral = new RepeatCommand(new InstantCommand(()->stateController.outputCoral()));
+    RepeatCommand reverseCoral = new RepeatCommand(new InstantCommand(()->stateController.reverseCoral()));
+
     public RobotContainer() {
         configureBindings();
     }
@@ -95,7 +103,7 @@ public class RobotContainer {
         // Note that X is defined as forward according to WPILib convention,
         // and Y is defined as to the left according to WPILib convention.
 
-/*  
+/*    
          drivetrain.setDefaultCommand(
             // Drivetrain will execute this command periodically
             drivetrain.applyRequest(() ->
@@ -104,8 +112,6 @@ public class RobotContainer {
                     .withRotationalRate(-driverController.getRightX() * MaxAngularRate) // Drive counterclockwise with negative X (left)
             )
         );
-    */
-/* 
         driverController.rightBumper().whileTrue(drivetrain.applyRequest(()->
                 robotCentricDrive.withVelocityX(-driverController.getLeftY() * MaxSpeed)
                 .withVelocityY(-driverController.getLeftX() * MaxSpeed)
@@ -130,12 +136,15 @@ public class RobotContainer {
         // reset the field-centric heading on left bumper press
         driverController.leftBumper().onTrue(drivetrain.runOnce(() -> drivetrain.seedFieldCentric()));
 
-        driverController.rightTrigger().onTrue(setClimbMode);
         driverController.leftTrigger().onTrue(setHoldingMode);
+
+        
 
         driverController.povUp().whileTrue(climbForward);
         driverController.povDown().whileTrue(climbReverse);
         driverController.povLeft().whileTrue(climbStop);
+
+        driverController.povUp().and(driverController.povDown()).whileFalse(climbStop);
 
 
         operatorController.a().onTrue(setIntakeMode);
@@ -153,8 +162,19 @@ public class RobotContainer {
         operatorController.leftBumper().onTrue(new InstantCommand(()->stateController.leftBumper()));
         operatorController.leftTrigger().onTrue(new InstantCommand(()->stateController.leftTrigger()));
 
-        operatorController.axisGreaterThan(0, .1).whileTrue(new InstantCommand(()->stateController.outputCoral()));
-        operatorController.axisLessThan(0, -.1).whileTrue(new InstantCommand(()->stateController.reverseCoral()));
+
+        operatorController.leftTrigger().onTrue(new InstantCommand(()->stateController.outputCoral()));
+    //    operatorController.rightTrigger().onTrue(new InstantCommand(()->stateController.toggleHoldingAlgae()));
+        operatorController.rightTrigger().onTrue(new IntakeCoral(elevator, Constants.ElevatorConstants.beamBreak).withTimeout(10));
+
+
+
+        operatorController.axisGreaterThan(1, .5).whileTrue(outputCoral);
+        operatorController.axisGreaterThan(1, .5).whileFalse(stopCoral);
+  //      operatorController.axisLessThan(1, -.5).whileTrue(reverseCoral);
+
+        
+        
 
         drivetrain.registerTelemetry(logger::telemeterize);
         

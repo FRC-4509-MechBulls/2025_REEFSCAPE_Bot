@@ -6,6 +6,7 @@ import com.pathplanner.lib.config.RobotConfig;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.Filesystem;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.ClimbSubsystem;
@@ -20,12 +21,13 @@ public class Constants {
 
         public static final double distancePerRotation = 2; // Inches
 
-        public static final double holdingHeight = 0.216;
-        public static final double level1Height = 1.544;
-        public static final double level2Height = 0.216;
-        public static final double level3Height = 0.216;
-        public static final double level4Height =  0.216;
-        public static final double intakeHeight = 1.133;
+        public static final double minimumHeight = 0.7;
+        public static final double holdingHeight = 0.7;
+        public static final double level1Height = 1.744;
+        public static final double level2Height = 3.18;
+        public static final double level3Height = 4.18;
+        public static final double level4Height =  5.8;
+        public static final double intakeHeight = 1.333;
 
         public static final double elevatorIntakeEFSpeed = -0.5;
         public static final double elevatorEjectEFSpeed = 0.5;
@@ -33,52 +35,49 @@ public class Constants {
         public static final int elevatorMotorID = 25;
 
         public static final double elevatorEncoderZeroHeight = 0; // Degrees
-        public static final int elevatorEncoderChannel = 2;
+        public static final int elevatorEncoderChannel = 0;
 
-        public static final double elevatorkp = 0.25;
-        public static final double elevatorki = 0;
-        public static final double elevatorkd = 0;
+        public static final double elevatorUpwardkp = 5;
+        public static final double elevatorUpwardki = 0;
+        public static final double elevatorUpwardkd = 0;
 
-        
+        public static final double elevatorDownwardkp = 5;
+        public static final double elevatorDownwardki = 0;
+        public static final double elevatorDownwardkd = 0.0;
 
-        public static final int clawMotorID = 19;
-        public static final int clawEncoderChannel = 5;
-        public static final double clawZeroOffset = 0; // Measured in rotations
+        public static final int clawMotorID = 20;
 
-        public static final double clawkp = 1;
-        public static final double clawki = .1;
-        public static final double clawkd = 0;
+        public static final int beamBrakeChannel = 4;
+        public static final DigitalInput beamBreak = new DigitalInput(beamBrakeChannel);
 
-        public static final double clawRetractedAngle = 0;
-        public static final double clawExtendedAngle = 0;
+        public static final int upperLimitSwtichChannel = 2;
+        public static final int lowerLimitSwitchChannel = 1;
+
 
     }
     public static class ShooterConstants{
 
         // Measured in degrees
         public static final double zeroOffset = 0.444; // Rotations, pointing horizontally left
-        public static final double holdingAngle = 90; // Directly downward
-        public static final double lowerReefAngle = 165;
-        public static final double upperReefAngle = 190;
-        public static final double processorAngle = 90;
-        public static final double netAngle = 245;
+        public static final double holdingAngle = 110; 
+        public static final double holdingNoAlgaeAngle = 60;
+        public static final double lowerReefAngle = 145;
+        public static final double upperReefAngle = 170;
+        public static final double processorAngle = 120;
+        public static final double netAngle = 210;
 
-        public static final int shooterArmEncoderChannel = 0;
+        public static final int shooterArmEncoderChannel = 3;
 
         public static final double shooterIntakeEFSpeed = -.5;
         public static final double shooterShootEFSpeed = 1;
-        public static final double shooterPlaceEFSpeed = .5;
+        public static final double shooterPlaceEFSpeed = 1;
 
         public static final int armEFID = 20;
         public static final int armID = 17;
 
-        public static final double armUpwardkp = 0.07; // .075
-        public static final double armUpwardki = 0.03; // .02
+        public static final double armUpwardkp = 0.075; // .075
+        public static final double armUpwardki = 0.02; // .02
         public static final double armUpwardkd = 0.01; // .01
-
-        public static final double armUpward2kp = 0.06; // .075
-        public static final double armUpward2ki = 0.02; // .02
-        public static final double armUpward2kd = 0.0; // .01
 
         public static final double armDownwardkp = 0.03; //.025
         public static final double armDownwardki = 0.0;
@@ -104,6 +103,8 @@ public class Constants {
         public static final Pose2d tag9Pose = new Pose2d(0,0, new Rotation2d(0));
         public static final Pose2d tag10Pose = new Pose2d(0,0, new Rotation2d(0));
         public static final Pose2d tag11Pose = new Pose2d(0,0, new Rotation2d(0));
+
+        public static double maxSpeed = 0.85;
     }
     public static class RobotConstants{
 

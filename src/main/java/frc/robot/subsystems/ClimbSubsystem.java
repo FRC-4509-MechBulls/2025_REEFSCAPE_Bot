@@ -57,7 +57,7 @@ public class ClimbSubsystem extends SubsystemBase{
                 speed = 0;
             }
         }
-        climb.set(speed/4);
+//        climb.set(speed/4);
     }
 
     public void periodic() {

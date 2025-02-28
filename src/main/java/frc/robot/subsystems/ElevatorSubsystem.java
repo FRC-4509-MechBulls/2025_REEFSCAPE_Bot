@@ -7,8 +7,11 @@ import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.revrobotics.AbsoluteEncoder;
+import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
 
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DutyCycleEncoder;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -19,17 +22,18 @@ public class ElevatorSubsystem extends SubsystemBase{
     TalonFX elevator;
     TalonFXConfiguration elevatorMotorConfig;
     DutyCycleEncoder elevatorEncoder;
-    private double zeroHeight;
-    PIDController elevatorController;
+    PIDController elevatorUpwardController;
+    PIDController elevatorDownwardController;
+    DigitalInput upperLimitSwitch;
+    DigitalInput lowerLimitSwitch;
+
     public double targetHeight;
     public double lastPosition;
     public int rotationCount;
     public double currentPosition;
 
-    TalonFX coralClaw;
+    SparkMax coralClaw;
 
-    double elevatorGearRatio = 1;
-    private final PositionVoltage positionRequest = new PositionVoltage(0);
 
     public ElevatorSubsystem() {
 
@@ -40,65 +44,63 @@ public class ElevatorSubsystem extends SubsystemBase{
         elevatorMotorConfig.CurrentLimits.StatorCurrentLimitEnable = true;
         elevatorMotorConfig.CurrentLimits.SupplyCurrentLimit = 40;
         elevatorMotorConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
-        elevatorMotorConfig.Slot0.kP = Constants.ElevatorConstants.elevatorkp;
-        elevatorMotorConfig.Slot0.kI = Constants.ElevatorConstants.elevatorki;
-        elevatorMotorConfig.Slot0.kD = Constants.ElevatorConstants.elevatorkd;
         elevatorMotorConfig.Slot0.kV = 0;
         elevator.getConfigurator().apply(elevatorMotorConfig);
 
         elevatorEncoder = new DutyCycleEncoder(Constants.ElevatorConstants.elevatorEncoderChannel);
+        elevatorEncoder.setInverted(true);
         lastPosition = elevatorEncoder.get();
 
-        elevatorController = new PIDController(Constants.ElevatorConstants.elevatorkp, Constants.ElevatorConstants.elevatorki, Constants.ElevatorConstants.elevatorkd);
-        elevatorController.setSetpoint(Constants.ElevatorConstants.holdingHeight);
-        elevatorController.setTolerance(2); // Inches of error
-
+        elevatorUpwardController = new PIDController(Constants.ElevatorConstants.elevatorUpwardkp, Constants.ElevatorConstants.elevatorUpwardki, Constants.ElevatorConstants.elevatorUpwardkd);
+        elevatorUpwardController.setSetpoint(Constants.ElevatorConstants.holdingHeight);
+        elevatorDownwardController = new PIDController(Constants.ElevatorConstants.elevatorDownwardkp, Constants.ElevatorConstants.elevatorDownwardki, Constants.ElevatorConstants.elevatorDownwardkd);
+        elevatorDownwardController.setSetpoint(Constants.ElevatorConstants.holdingHeight);
         
-        coralClaw = new TalonFX(Constants.ElevatorConstants.clawMotorID);
-        coralClaw.getConfigurator().apply(elevatorMotorConfig); // They have the same configs, might as well reuse it
-
+        coralClaw = new SparkMax(Constants.ElevatorConstants.clawMotorID, MotorType.kBrushless);
+        
         rotationCount = 0;
+
+   //     upperLimitSwitch = new DigitalInput(Constants.ElevatorConstants.upperLimitSwtichChannel);
+   //     lowerLimitSwitch = new DigitalInput(Constants.ElevatorConstants.lowerLimitSwitchChannel);
     }
 
     public void setHeight(double desiredHeight){
         targetHeight = desiredHeight;
-        elevatorController.setSetpoint(desiredHeight);
-
-        double ticks = targetHeight * elevatorGearRatio;
-
-   //     elevator.setControl(positionRequest.withPosition(ticks).withFeedForward(0.1));
-
+        elevatorUpwardController.setSetpoint(desiredHeight);
+        elevatorDownwardController.setSetpoint(desiredHeight);
     }
 
     public void periodic() {
         currentPosition = getContinuousPosition();
 
- //       elevator.setVoltage(elevatorController.calculate(getContinuousPosition(), targetHeight));
-
-//        elevator.setControl(new MotionMagicDutyCycle(targetHeight)); // Get rid of the PIDController?
-//        coralClaw.setControl(new MotionMagicDutyCycle(targetClaw));
+        if(targetHeight > currentPosition){
+//            elevator.setVoltage(elevatorUpwardController.calculate(getContinuousPosition(), targetHeight));
+        } else if(targetHeight < currentPosition) {
+//            elevator.setVoltage(elevatorDownwardController.calculate(getContinuousPosition(), targetHeight));
+        }
+        SmartDashboard.putNumber("elevatorUpwardPIDValue", elevatorUpwardController.calculate(getContinuousPosition(), targetHeight));
+        SmartDashboard.putNumber("elevatorDownwardPIDValue", elevatorDownwardController.calculate(getContinuousPosition(), targetHeight));
 
         updateSmartDashboard();
-
-        SmartDashboard.putNumber("rawElevatorEncoder", elevatorEncoder.get());
-        SmartDashboard.putNumber("continuousPosition", getContinuousPosition());
-        SmartDashboard.putBoolean("elevatorEncoderConnected",elevatorEncoder.isConnected());
-        SmartDashboard.putNumber("elevatorEncoderFrequency", elevatorEncoder.getFrequency());
-        
     }
 
     public void updateSmartDashboard(){
-        
+        SmartDashboard.putNumber("rawElevatorEncoder", elevatorEncoder.get());
+        SmartDashboard.putNumber("continuousPosition", getContinuousPosition());
+        SmartDashboard.putNumber("elevatorSetpoint", targetHeight);
+ //       SmartDashboard.putBoolean("upperLimitSwitch", upperLimitSwitch.get());
+ //       SmartDashboard.putBoolean("lowerLimitSwitch", lowerLimitSwitch.get());
+ //       SmartDashboard.putBoolean("coralBeamBreak", Constants.ElevatorConstants.beamBreak.get());
     }
     
     public void outputCoral(){
-        coralClaw.set(0.2);
+ //       coralClaw.set(0.2);
     }
     public void retractCoral(){
-        coralClaw.set(-0.1);
+ //       coralClaw.set(-0.1);
     }
     public void stopCoral(){
-        coralClaw.set(0);
+ //       coralClaw.set(0);
     }
 
     public double getContinuousPosition(){
