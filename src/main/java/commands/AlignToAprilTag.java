@@ -1,9 +1,21 @@
 package commands;
 
+import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
+
+import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.RadiansPerSecond;
+import static edu.wpi.first.units.Units.RotationsPerSecond;
+
+import com.ctre.phoenix6.swerve.SwerveRequest;
+
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import frc.robot.Constants;
+import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.VisionSubsystem;
 
@@ -15,6 +27,13 @@ public class AlignToAprilTag extends Command{
     
     private final double targetDistance; // Desired distance from the april tag
     private Pose2d targetPose;
+
+    private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond) * Constants.DriveConstants.maxSpeed; // kSpeedAt12Volts desired top speed
+    private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond);
+
+    private final SwerveRequest.RobotCentric robotCentricDrive = new SwerveRequest.RobotCentric()
+            .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * .1)
+            .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
 
     public AlignToAprilTag(CommandSwerveDrivetrain drive, VisionSubsystem vision, double targetDistance) {
         this.driveTrain = drive;
@@ -47,7 +66,8 @@ public class AlignToAprilTag extends Command{
             double ySpeed = yController.calculate(currentPose.getY(), targetPose.getY());
             double rotationSpeed = thetaController.calculate(currentPose.getRotation().getRadians(), targetPose.getRotation().getRadians());
 
-            driveTrain.drive(xSpeed, ySpeed, rotationSpeed);
+            ChassisSpeeds speeds = new ChassisSpeeds(xSpeed, ySpeed, rotationSpeed);
+            driveTrain.drive(speeds);
         }
     }
 

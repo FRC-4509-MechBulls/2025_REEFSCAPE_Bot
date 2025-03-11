@@ -10,9 +10,19 @@ import org.photonvision.targeting.PhotonPipelineResult;
 
 import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
+import com.ctre.phoenix6.controls.ControlRequest;
+import com.ctre.phoenix6.controls.PositionVoltage;
+import com.ctre.phoenix6.mechanisms.swerve.LegacySwerveModule;
+import com.ctre.phoenix6.mechanisms.swerve.LegacySwerveRequest;
+import com.ctre.phoenix6.mechanisms.swerve.LegacySwerveRequest.ApplyChassisSpeeds;
+import com.ctre.phoenix6.mechanisms.swerve.LegacySwerveRequest.LegacySwerveControlRequestParameters;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
+import com.ctre.phoenix6.swerve.SwerveModule;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveModule.ModuleRequest;
+import com.ctre.phoenix6.swerve.SwerveRequest.ApplyRobotSpeeds;
+import com.ctre.phoenix6.swerve.SwerveRequest.FieldCentric;
+import com.ctre.phoenix6.swerve.SwerveRequest.RobotCentric;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
@@ -21,8 +31,13 @@ import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 
 import commands.AlignToPose;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.controller.HolonomicDriveController;
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.controller.ProfiledPIDController;
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
+import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -30,15 +45,21 @@ import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.Odometry;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.units.measure.LinearVelocity;
+import edu.wpi.first.util.sendable.Sendable;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
@@ -81,6 +102,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private final SwerveRequest.SysIdSwerveTranslation m_translationCharacterization = new SwerveRequest.SysIdSwerveTranslation();
     private final SwerveRequest.SysIdSwerveSteerGains m_steerCharacterization = new SwerveRequest.SysIdSwerveSteerGains();
     private final SwerveRequest.SysIdSwerveRotation m_rotationCharacterization = new SwerveRequest.SysIdSwerveRotation();
+
+    private Field2d field = new Field2d();
 
     /* SysId routine for characterizing translation. This is used to find PID gains for the drive motors. */
     private final SysIdRoutine m_sysIdRoutineTranslation = new SysIdRoutine(
@@ -144,6 +167,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     /* The SysId routine to test */
     private SysIdRoutine m_sysIdRoutineToApply = m_sysIdRoutineTranslation;
 
+    SwerveModulePosition[] modulePositions = new SwerveModulePosition[4];
+    SwerveDrivePoseEstimator poseEstimator;
+
     /**
      * Constructs a CTRE SwerveDrivetrain using the specified constants.
      * <p>
@@ -163,14 +189,23 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
             startSimThread();
         }
 
+        SmartDashboard.putData("field",field);
+        
+        for(int i = 0; i < 4; i++){
+            modulePositions[i] = this.getModule(i).getPosition(true);
+        }
+        poseEstimator = new SwerveDrivePoseEstimator(getKinematics(), this.getPigeon2().getRotation2d(), modulePositions, this.getState().Pose);
+        
+        
+        
         AutoBuilder.configure(
             this::getPose,
-            this::resetPose,
+            this::resetEstimatedPose,
             this::getRobotRelativeSpeeds,
             this::drive,
             new PPHolonomicDriveController(
-                new PIDConstants(5,0,0),
-                new PIDConstants(2, 0, .5) 
+                new PIDConstants(5,0,0), 
+                new PIDConstants(5,0,0) 
                 ),
             Constants.AutoConstants.robotConfig,
             () -> {
@@ -184,7 +219,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
             },
             this
         );
-
+        SmartDashboard.putNumber("heading", this.getPigeon2().getYaw().getValueAsDouble());
     }
 
     /**
@@ -252,15 +287,27 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     public Command applyRequest(Supplier<SwerveRequest> requestSupplier) {
         return run(() -> this.setControl(requestSupplier.get()));
     }
-
+    public void resetEstimatedPose(Pose2d newPose){
+        poseEstimator.resetPose(newPose);
+        this.resetPose(newPose);
+    }
     public void drive(ChassisSpeeds chassisSpeeds){
+
         SwerveModuleState[] moduleStates = getKinematics().toSwerveModuleStates(chassisSpeeds);
         SwerveDriveKinematics.desaturateWheelSpeeds(moduleStates, MaxSpeed);
-
- //       this.getModule(0).apply(new ModuleRequest().withState(moduleStates[0]));
- //       this.getModule(1).apply(new ModuleRequest().withState(moduleStates[1]));
- //       this.getModule(2).apply(new ModuleRequest().withState(moduleStates[2]));
+        for(int i = 0; i < 4; i++) {
+//            moduleStates[i].speedMetersPerSecond = drivefeedforward.calculate(moduleStates[i].speedMetersPerSecond);
+            moduleStates[i].optimize(this.getModule(i).getCurrentState().angle);
+//            this.getModule(i).getDriveMotor().set(moduleStates[i].speedMetersPerSecond);
+//            this.getModule(i).getSteerMotor().set(steerController.calculate(this.getModule(i).getEncoder().getAbsolutePosition().getValueAsDouble()*360, MathUtil.inputModulus(moduleStates[i].angle.getDegrees(), -180, 180)));
+   //         this.getModule(i).getSteerMotor().setControl(positionVoltage.withPosition(moduleStates[i].angle.getRadians()));
+}    
+        
+        this.getModule(0).apply(new ModuleRequest().withState(moduleStates[0]));
+        this.getModule(1).apply(new ModuleRequest().withState(moduleStates[1]));
+        this.getModule(2).apply(new ModuleRequest().withState(moduleStates[2]));
         this.getModule(3).apply(new ModuleRequest().withState(moduleStates[3]));
+    
     }
 
     public Command driveIsolated(int i, double leftJoystickX) {
@@ -300,8 +347,24 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         return m_sysIdRoutineToApply.dynamic(direction);
     }
 
+    public SwerveModulePosition[] getModulePositions(){
+        SwerveModulePosition[] modulePositions = new SwerveModulePosition[4];
+        for(int i = 0; i < 4; i++) {
+            modulePositions[i] = this.getModule(i).getPosition(true);
+        }
+        return modulePositions;
+    }
+
     @Override
     public void periodic() {
+        field.setRobotPose(this.getPose());
+        poseEstimator.update(this.getPigeon2().getRotation2d(), getModulePositions());
+        SmartDashboard.putNumberArray("pose", new Double[]{
+            poseEstimator.getEstimatedPosition().getX(),
+            poseEstimator.getEstimatedPosition().getY(),
+            poseEstimator.getEstimatedPosition().getRotation().getRadians()
+        });
+
         /*
          * Periodically try to apply the operator perspective.
          * If we haven't applied the operator perspective before, then we should apply it regardless of DS state.
@@ -337,66 +400,18 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     }
 
     public Pose2d getPose(){
-        return this.getState().Pose;
+        Pose2d originalPose = poseEstimator.getEstimatedPosition();
+        Rotation2d adjustedRotation = Rotation2d.fromDegrees(originalPose.getRotation().getDegrees() - 90);
+
+        return new Pose2d(originalPose.getTranslation(), adjustedRotation);
+ //       return this.getState().Pose;
     }
     public ChassisSpeeds getRobotRelativeSpeeds(){
-        return this.getState().Speeds; // robot relative?
+        return this.getKinematics().toChassisSpeeds(this.getState().ModuleStates);
         
-   //     return this.getKinematics().toChassisSpeeds(new SwerveModuleState[]{this.getModule(0).getCurrentState(),this.getModule(1).getCurrentState(),this.getModule(2).getCurrentState(),this.getModule(3).getCurrentState()});
-    }
+   }
     public Command drive(double leftJoystickY, double leftJoystickX, double rightJoystickX){
-        
-        if(Math.abs(leftJoystickY - currentOutputY) > 0) {
-            if(leftJoystickY == 0) {
-                if(currentOutputY > 0) {
-                    currentOutputY -= noInput;
-                }
-                if(currentOutputY < 0) {
-                    currentOutputY += noInput;
-                }
-            }
-            else {
-                if(leftJoystickY > currentOutputY) {
-                    currentOutputY += rampUp;
-                    if(currentOutputY > leftJoystickY) {
-                        currentOutputY = leftJoystickY;
-                    }
-                }
-                else if(leftJoystickY < currentOutputY) {
-                    currentOutputY -= rampUp;
-                    if(currentOutputY < leftJoystickY) {
-                    currentOutputY = leftJoystickY;
-                }
-            }
-            }
-        }
-
-        if(Math.abs(leftJoystickX - currentOutputX) > 0) {
-            if(leftJoystickX == 0) {
-                if(currentOutputX > 0) {
-                    currentOutputX -= noInput;
-                }
-                if(currentOutputX < 0) {
-                    currentOutputX += noInput;
-                }
-            }
-            else {
-                if(leftJoystickX > currentOutputX) {
-                    currentOutputX += rampUp;
-                    if(currentOutputX > leftJoystickX) {
-                        currentOutputX = leftJoystickX;
-                    }
-                }
-                else if(leftJoystickX < currentOutputX) {
-                    currentOutputX -= rampUp;
-                    if(currentOutputX < leftJoystickX) {
-                    currentOutputX = leftJoystickX;
-                }
-            }
-            }
-        }
-        
-        return this.applyRequest(() ->
+            return this.applyRequest(() ->
                       drive.withVelocityX(currentOutputY * MaxSpeed) // Drive forward with negative Y (forward)
                           .withVelocityY(currentOutputX * MaxSpeed) // Drive left with negative X (left)
                           .withRotationalRate(rightJoystickX * MaxAngularRate) // Drive counterclockwise with negative X (left)

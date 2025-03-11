@@ -1,11 +1,16 @@
 package frc.robot;
 
+import static edu.wpi.first.units.Units.MetersPerSecond;
+
 import java.nio.file.Path;
 
+import com.pathplanner.lib.config.ModuleConfig;
 import com.pathplanner.lib.config.RobotConfig;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.Filesystem;
 import frc.robot.generated.TunerConstants;
@@ -17,18 +22,17 @@ import frc.robot.subsystems.VisionSubsystem;
 
 public class Constants {
     
-    
     public static class ElevatorConstants{
 
         public static final double distancePerRotation = 2; // Inches
 
-        public static final double minimumHeight = 0.7;
-        public static final double holdingHeight = 0.7;
-        public static final double level1Height = 1.744;
-        public static final double level2Height = 3.18;
-        public static final double level3Height = 4.18;
-        public static final double level4Height =  5.8;
-        public static final double intakeHeight = 1.333;
+        public static final double minimumHeight = 0.4;
+        public static final double holdingHeight = 0.4;
+        public static final double level1Height = 1.9;
+        public static final double level2Height = 2.06;
+        public static final double level3Height = 3.5;
+        public static final double level4Height =  5.42; 
+        public static final double intakeHeight = .3;
 
         public static final double elevatorIntakeEFSpeed = -0.5;
         public static final double elevatorEjectEFSpeed = 0.5;
@@ -38,22 +42,21 @@ public class Constants {
         public static final double elevatorEncoderZeroHeight = 0; // Degrees
         public static final int elevatorEncoderChannel = 0;
 
-        public static final double elevatorUpwardkp = 5;
+        public static final double elevatorUpwardkp = 14;
         public static final double elevatorUpwardki = 0;
         public static final double elevatorUpwardkd = 0;
 
-        public static final double elevatorDownwardkp = 5;
+        public static final double elevatorDownwardkp = 14;
         public static final double elevatorDownwardki = 0;
         public static final double elevatorDownwardkd = 0.0;
 
         public static final int clawMotorID = 20;
 
-        public static final int beamBrakeChannel = 4;
-        public static final DigitalInput beamBreak = new DigitalInput(beamBrakeChannel);
+        public static final int beamBreakChannel = 4;
+        public static DigitalInput beamBreak = new DigitalInput(beamBreakChannel);
 
-        public static final int upperLimitSwtichChannel = 2;
-        public static final int lowerLimitSwitchChannel = 1;
-
+        public static final int upperLimitSwtichChannel = 1; 
+        public static final int lowerLimitSwitchChannel = 3;
 
     }
     public static class ShooterConstants{
@@ -67,13 +70,13 @@ public class Constants {
         public static final double processorAngle = 120;
         public static final double netAngle = 210;
 
-        public static final int shooterArmEncoderChannel = 3;
+        public static final int shooterArmEncoderChannel = 2;
 
         public static final double shooterIntakeEFSpeed = -.5;
         public static final double shooterShootEFSpeed = 1;
         public static final double shooterPlaceEFSpeed = 1;
 
-        public static final int armEFID = 20;
+        public static final int armEFID = 21;
         public static final int armID = 17;
 
         public static final double armUpwardkp = 0.075; // .075
@@ -105,7 +108,7 @@ public class Constants {
         public static final Pose2d tag10Pose = new Pose2d(0,0, new Rotation2d(0));
         public static final Pose2d tag11Pose = new Pose2d(0,0, new Rotation2d(0));
 
-        public static double maxSpeed = 0.85;
+        public static double maxSpeed = 0.6;
     }
     public static class RobotConstants{
 
@@ -118,15 +121,24 @@ public class Constants {
         public static final double robotWidth = 0;
         public static final double robotLength = 0;
 
+        public static final double visionkP = .1;
+
     }
     public static class AutoConstants{
+
+            public static final ModuleConfig moduleConfig = new ModuleConfig(2, 4.73, 1, DCMotor.getKrakenX60(1), 6.746, 40, 1);
+            public static final Translation2d[] translations = {new Translation2d(.302,.302), new Translation2d(.302, -.302), new Translation2d(-.302, .302), new Translation2d(-.302, -.302)};
+            
+
+
+            public static final RobotConfig config = new RobotConfig(68, 6.149, moduleConfig, translations);
 
             public static final RobotConfig robotConfig = createRobotConfig();
 
             static {
                 // Initialization is done in the createRobotConfig method
             }
-
+            
             private static RobotConfig createRobotConfig() {
                 RobotConfig config = null;
                 try {

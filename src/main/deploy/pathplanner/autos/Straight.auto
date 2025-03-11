@@ -7,7 +7,61 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Straight"
+            "pathName": "Start3ToReef6"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 1.0
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "setLevel3"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "setPrePlacingMode"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 2.0
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "setPlacingMode"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 0.5
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "setHoldingMode"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 2.0
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Reef6ToSource"
           }
         }
       ]

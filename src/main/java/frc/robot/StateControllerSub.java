@@ -9,7 +9,10 @@ import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.ClimbSubsystem;
@@ -35,6 +38,9 @@ public class StateControllerSub extends SubsystemBase{
     public enum AlgaeIntakeSource{
         level2, level3
     }
+    public enum ControlState{
+        stateController, manual
+    }
 
     private State state;
     private State lastState;
@@ -47,9 +53,13 @@ public class StateControllerSub extends SubsystemBase{
     private ElevatorSubsystem elevatorSubsystem;
     private ShooterSubsystem shooterSubsystem;
     private ClimbSubsystem climbSubsystem;
+    private static ControlState controlState = ControlState.stateController;
     boolean climbed;
+    boolean previousBeamBreakState;
+    double  alignmentPoint;
 
     boolean holdingAlgae;
+    SendableChooser<ControlState> controlStateChooser;
 
     public StateControllerSub() {
         state = State.holding;
@@ -64,13 +74,21 @@ public class StateControllerSub extends SubsystemBase{
         shooterSubsystem = new ShooterSubsystem();
         climbSubsystem = new ClimbSubsystem();
         climbed = false;
+        controlStateChooser = new SendableChooser<ControlState>();
+        controlStateChooser.setDefaultOption("StateControllerControl", ControlState.stateController);
+        controlStateChooser.addOption("ManualControl", ControlState.manual);
+        SmartDashboard.putData("ControlStateChooser", controlStateChooser);
 
         holdingAlgae = false;
-        
+        previousBeamBreakState = false;
+        alignmentPoint = 0;
     }
 
     private Pose2d robotPose = new Pose2d();
 
+    public static ControlState getControlState(){
+        return controlState;
+    }
     public State getRobotState(){
         return state;
     }
@@ -88,6 +106,9 @@ public class StateControllerSub extends SubsystemBase{
     }
     public VisionSubsystem getVisionSubsystem() {
         return visionSubsystem;
+    }
+    public double getAlignmentPoint() {
+        return alignmentPoint;
     }
     
     public void setRobotState(State desiredState){
@@ -151,8 +172,15 @@ public class StateControllerSub extends SubsystemBase{
     public void setShooterAngle(double angle){
         shooterSubsystem.rotateShooter(angle);
     }
+    public void outputCoral(double speed){
+        elevatorSubsystem.outputCoral(speed);
+    }
     public void outputCoral(){
-        elevatorSubsystem.outputCoral();
+        if(state.equals(State.intaking)){
+            elevatorSubsystem.outputCoral(-.5);
+        } else{
+            elevatorSubsystem.outputCoral(-1);
+        }
     }
     public void stopCoral(){
         elevatorSubsystem.stopCoral();
@@ -162,8 +190,9 @@ public class StateControllerSub extends SubsystemBase{
     }
 
     public void periodic() {
+        controlState = controlStateChooser.getSelected();
         updateSmartDashboard();
-        updatePoseFromVision();
+ //       updatePoseFromVision();
         holdingAlgae = SmartDashboard.getBoolean("holdingAlgae", true);
 
         switch(state){
@@ -191,6 +220,12 @@ public class StateControllerSub extends SubsystemBase{
                 }
                 else if(itemType.equals(ItemType.coral)){
                     elevatorSubsystem.setHeight(Constants.ElevatorConstants.intakeHeight);
+                    outputCoral(-.5);
+  //                      CommandScheduler.getInstance().schedule(new InstantCommand(()->elevatorSubsystem.outputCoral(-.75)));
+                    if(!Constants.ElevatorConstants.beamBreak.get()){
+                        CommandScheduler.getInstance().schedule(new InstantCommand(()->elevatorSubsystem.outputCoral(-.3)).withTimeout(0.9));
+                        state = State.holding;
+                    }            
                 }
                 break;
 
@@ -210,7 +245,9 @@ public class StateControllerSub extends SubsystemBase{
 
             case placing: 
                     if(itemType.equals(ItemType.coral)){
-                        outputCoral();
+                        if(controlState.equals(ControlState.stateController)){
+                            outputCoral(-.8);
+                        }
                     }
                     else if(itemType.equals(ItemType.algae)){
                         if(algaeObjective.equals(AlgaeObjective.net)){
@@ -223,7 +260,7 @@ public class StateControllerSub extends SubsystemBase{
                 break;
             case climbing:
                 setElevatorHeight();
-                setShooterAngle(0);
+                setShooterAngle(Constants.ShooterConstants.holdingAngle);
                 setShooterEF(0);
                 break;
         }
@@ -236,8 +273,21 @@ public class StateControllerSub extends SubsystemBase{
         SmartDashboard.putString("Algae Objective", algaeObjective.toString());
         SmartDashboard.putString("Algae Intake Source", algaeIntakeSource.toString());
         SmartDashboard.putBoolean("holdingAlgae", holdingAlgae);
-    }
+ //       SmartDashboard.putNumber("pipelineResult", visionSubsystem.getPipelineResult().getBestTarget().fiducialId);
+        SmartDashboard.putNumber("AlignmentPoint", alignmentPoint);
+        SmartDashboard.putNumber("flAngle", driveSubsystem.getModule(1).getEncoder().getAbsolutePosition().getValueAsDouble());
+        SmartDashboard.putNumber("frAngle", driveSubsystem.getModule(0).getEncoder().getAbsolutePosition().getValueAsDouble());
+        SmartDashboard.putNumber("blAngle", driveSubsystem.getModule(3).getEncoder().getAbsolutePosition().getValueAsDouble());
+        SmartDashboard.putNumber("brAngle", driveSubsystem.getModule(2).getEncoder().getAbsolutePosition().getValueAsDouble());
+}
 
+    public void toggleControlMode(){
+        if(controlState.equals(ControlState.manual)){
+            controlState = ControlState.stateController;
+        } else{
+            controlState = ControlState.manual;
+        }
+    }
     public void toggleHoldingAlgae() {
         holdingAlgae = !holdingAlgae;
     }
@@ -279,6 +329,9 @@ public class StateControllerSub extends SubsystemBase{
     public ElevatorSubsystem getElevator(){
         return elevatorSubsystem;
     }
-    
+    public void setAlignmentPoint(double point){
+        visionSubsystem.setAlignmentPoint(point);
+        alignmentPoint = point;
+    }
 
 }

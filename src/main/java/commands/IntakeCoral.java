@@ -16,7 +16,7 @@ public class IntakeCoral extends Command{
     }
 
     public void execute(){
-        elevatorSubsystem.outputCoral();
+        elevatorSubsystem.outputCoral(-.2);
     }
 
     public boolean isFinished(){
