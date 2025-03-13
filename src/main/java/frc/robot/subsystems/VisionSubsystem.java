@@ -30,6 +30,7 @@ public class VisionSubsystem extends SubsystemBase{
     AprilTagFieldLayout aprilTagFieldLayout;
     PhotonCamera camera1 = new PhotonCamera("BackLeftCamera");
     PhotonCamera camera2 = new PhotonCamera("camera2");
+    PhotonCamera camera3 = new PhotonCamera("Microsoft_LifeCam_HD-3000");
     double alignmentPoint = 0;
 //    PhotonPoseEstimator photonPoseEstimator1;
 //    PhotonPoseEstimator photonPoseEstimator2;
@@ -83,10 +84,12 @@ public class VisionSubsystem extends SubsystemBase{
     }
 
     public void periodic(){
-        if(getPipelineResult().getBestTarget() != null){
-            SmartDashboard.putNumber("TargetYaw", getYaw());
-            SmartDashboard.putNumber("TargetSkew", getSkew());
-            SmartDashboard.putNumber("TargetPitch", getPitch());
+        if(getPipelineResult().hasTargets()){
+            if(getPipelineResult().getBestTarget() != null){
+                SmartDashboard.putNumber("TargetYaw", getYaw());
+                SmartDashboard.putNumber("TargetSkew", getSkew());
+                SmartDashboard.putNumber("TargetPitch", getPitch());
+            }
         }
     }
         

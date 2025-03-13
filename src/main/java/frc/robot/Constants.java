@@ -14,11 +14,7 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.Filesystem;
 import frc.robot.generated.TunerConstants;
-import frc.robot.subsystems.ClimbSubsystem;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
-import frc.robot.subsystems.ElevatorSubsystem;
-import frc.robot.subsystems.ShooterSubsystem;
-import frc.robot.subsystems.VisionSubsystem;
 
 public class Constants {
     
@@ -26,13 +22,13 @@ public class Constants {
 
         public static final double distancePerRotation = 2; // Inches
 
-        public static final double minimumHeight = 0.4;
-        public static final double holdingHeight = 0.4;
-        public static final double level1Height = 1.9;
-        public static final double level2Height = 2.06;
-        public static final double level3Height = 3.5;
-        public static final double level4Height =  5.42; 
-        public static final double intakeHeight = .3;
+        public static final double minimumHeight = 0.5;
+        public static final double holdingHeight = 0.55;
+        public static final double level1Height = 2.05;
+        public static final double level2Height = 2.21;
+        public static final double level3Height = 3.65;
+        public static final double level4Height =  5.72; 
+        public static final double intakeHeight = .55;
 
         public static final double elevatorIntakeEFSpeed = -0.5;
         public static final double elevatorEjectEFSpeed = 0.5;
@@ -108,12 +104,9 @@ public class Constants {
         public static final Pose2d tag10Pose = new Pose2d(0,0, new Rotation2d(0));
         public static final Pose2d tag11Pose = new Pose2d(0,0, new Rotation2d(0));
 
-        public static double maxSpeed = 0.6;
+        public static double maxSpeed = 1;
     }
     public static class RobotConstants{
-
-        public static final StateControllerSub stateController = new StateControllerSub();
-
 
         public static final double kDriverControllerPort = 0;
         public static final double kOperatorControllerPort = 1;

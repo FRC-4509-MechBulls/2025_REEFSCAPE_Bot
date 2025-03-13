@@ -96,7 +96,7 @@ public class AlignToAprilTag2D extends Command {
 
             ChassisSpeeds speeds = new ChassisSpeeds(yaw, 0, 0);
 
-            swerve.drive(speeds);
+//            swerve.drive(speeds);
 
 /* 
             // Drive using swerve (X = strafe, Y = forward/backward, Rotation)

@@ -24,7 +24,7 @@ public class AlignToPose extends Command{
 
     public void execute() {
 
-        Pose2d currentPose = driveSubsystem.getPose();
+        Pose2d currentPose = driveSubsystem.getState().Pose;
 
         Transform2d error = currentPose.minus(targetPose);
 
@@ -32,16 +32,16 @@ public class AlignToPose extends Command{
         double ySpeed = xController.calculate(error.getY());
         double thetaSpeed = xController.calculate(error.getRotation().getRadians());
 
-        driveSubsystem.drive(new ChassisSpeeds(xSpeed, ySpeed, thetaSpeed));
+//        driveSubsystem.drive(new ChassisSpeeds(xSpeed, ySpeed, thetaSpeed));
 
     }
     public boolean isFinished() {
 
-        Pose2d currentPose = driveSubsystem.getPose();
+        Pose2d currentPose = driveSubsystem.getState().Pose;
         return currentPose.getTranslation().getDistance(targetPose.getTranslation()) < 1;
-
+     
     }
     public void end(boolean interrupted){
-        driveSubsystem.drive(new ChassisSpeeds(0,0,0));
+//        driveSubsystem.drive(new ChassisSpeeds(0,0,0));
     }
 }

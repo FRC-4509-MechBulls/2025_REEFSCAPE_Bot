@@ -15,9 +15,6 @@ import com.pathplanner.lib.commands.PathPlannerAuto;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 
-import commands.AlignToAprilTag;
-import commands.AlignToAprilTag2D;
-import commands.IntakeCoral;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -40,13 +37,14 @@ import frc.robot.StateControllerSub.ItemType;
 import frc.robot.StateControllerSub.Level;
 import frc.robot.StateControllerSub.State;
 import frc.robot.generated.TunerConstants;
+import frc.robot.subsystems.ClimbSubsystem;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.ElevatorSubsystem;
-import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.VisionSubsystem;
 
+
 public class RobotContainer {
-    private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond) * Constants.DriveConstants.maxSpeed; // kSpeedAt12Volts desired top speed
+    private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
     private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
 
     /* Setting up bindings for necessary control of the swerve drive platform */
@@ -62,49 +60,39 @@ public class RobotContainer {
     private final Telemetry logger = new Telemetry(MaxSpeed);
 
     private final CommandXboxController driverController = new CommandXboxController(0);
+    private final XboxController driverController_HID = driverController.getHID();
     private final CommandXboxController operatorController = new CommandXboxController(1);
 
     public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
-    private final StateControllerSub stateController = new StateControllerSub();
-    private final VisionSubsystem vision = stateController.getVisionSubsystem();
-    private final ElevatorSubsystem elevator = stateController.getElevator();
-
+    public final ElevatorSubsystem elevatorSubsystem = new ElevatorSubsystem();
+    public final VisionSubsystem visionSubsystem = new VisionSubsystem();
+    public final ClimbSubsystem climbSubsystem = new ClimbSubsystem();
+    public final StateControllerSub stateController = new StateControllerSub(visionSubsystem, elevatorSubsystem, climbSubsystem, drivetrain);
+    
     SendableChooser<Command> autoChooser = new SendableChooser<>();
 
     InstantCommand setIntakeMode = new InstantCommand(()->stateController.setRobotState(State.intaking));
     InstantCommand setHoldingMode = new InstantCommand(()->stateController.setRobotState(State.holding));
     InstantCommand setPrePlacingMode = new InstantCommand(()->stateController.setRobotState(State.pre_placing));
     InstantCommand setPlacingMode = new InstantCommand(()->stateController.setRobotState(State.placing));
-    InstantCommand setClimbMode = new InstantCommand(()->stateController.setRobotState(State.climbing));
-
-    InstantCommand setAlgaeMode = new InstantCommand(()->stateController.setItemType(ItemType.algae));
-    InstantCommand setCoralMode = new InstantCommand(()->stateController.setItemType(ItemType.coral));
 
     InstantCommand setLevel1 = new InstantCommand(()->stateController.setLevel(Level.level1));
     InstantCommand setLevel2 = new InstantCommand(()->stateController.setLevel(Level.level2));
     InstantCommand setLevel3 = new InstantCommand(()->stateController.setLevel(Level.level3));
     InstantCommand setLevel4 = new InstantCommand(()->stateController.setLevel(Level.level4));
 
-    InstantCommand setShooterIntakeLevel3 = new InstantCommand(()->stateController.setAlgaeIntakeSource(AlgaeIntakeSource.level3));
-    InstantCommand setShooterIntakeLevel2 = new InstantCommand(()->stateController.setAlgaeIntakeSource(AlgaeIntakeSource.level2));
 
-    InstantCommand setProcessorMode = new InstantCommand(()->stateController.setAlgaeObjective(AlgaeObjective.processor));
-    InstantCommand setNetMode = new InstantCommand(()->stateController.setAlgaeObjective(AlgaeObjective.net));
 
-    InstantCommand alignToAprilTag = new InstantCommand(()->drivetrain.alignToAprilTag(vision.getPipelineResult(), vision.getAprilTagFieldLayout()));
-
-    RepeatCommand climbForward = new RepeatCommand(new InstantCommand(()->stateController.toggleClimb(.6)));
-    RepeatCommand climbReverse = new RepeatCommand(new InstantCommand(()->stateController.toggleClimb(-.6)));
-    RepeatCommand climbStop = new RepeatCommand(new InstantCommand(()->stateController.toggleClimb(0)));
-
-    RunCommand stopCoral = new RunCommand(()->stateController.stopCoral());
-    RepeatCommand outputCoral = new RepeatCommand(new InstantCommand(()->stateController.outputCoral()));
-    RepeatCommand reverseCoral = new RepeatCommand(new InstantCommand(()->stateController.reverseCoral()));
-
-    RunCommand chassisSpeedDrive = new RunCommand(()->drivetrain.drive(new ChassisSpeeds(driverController.getLeftX() * MaxSpeed, driverController.getLeftY() * MaxSpeed, driverController.getRightX() * MaxAngularRate)));
+//    RepeatCommand climbForward = new RepeatCommand(new InstantCommand(()->stateController.toggleClimb(.6)));
+//    RepeatCommand climbReverse = new RepeatCommand(new InstantCommand(()->stateController.toggleClimb(-.6)));
+//    RepeatCommand climbStop = new RepeatCommand(new InstantCommand(()->stateController.toggleClimb(0)));
 
     public RobotContainer() {
         configureBindings();
+    }
+
+    public CommandSwerveDrivetrain getDriveTrain(){
+        return drivetrain;
     }
 
     private void configureBindings() {
@@ -114,56 +102,56 @@ public class RobotContainer {
         drivetrain.setDefaultCommand(
             // Drivetrain will execute this command periodically
             drivetrain.applyRequest(() ->
-                fieldCentricDrive.withVelocityX(driverController.getLeftX() * MaxSpeed) // Drive forward with negative Y (forward), changed to use X
-                    .withVelocityY(-driverController.getLeftY() * MaxSpeed) // Drive left with negative X (left), changed to use Y
-                    .withRotationalRate(-driverController.getRightX() * MaxAngularRate) // Drive counterclockwise with negative X (left)
+                fieldCentricDrive.withVelocityX(driverController_HID.getLeftX() * MaxSpeed) // Drive forward with negative Y (forward), changed to use X
+                    .withVelocityY(-driverController_HID.getLeftY() * MaxSpeed) // Drive left with negative X (left), changed to use Y
+                    .withRotationalRate(-driverController_HID.getRightX() * MaxAngularRate) // Drive counterclockwise with negative X (left)
             )
         );
 
+          
         driverController.rightBumper().whileTrue(drivetrain.applyRequest(()->
-                robotCentricDrive.withVelocityX(driverController.getLeftX() * MaxSpeed) // Changed to use x
-                .withVelocityY(-driverController.getLeftY() * MaxSpeed) // Changed to use y
-                .withRotationalRate(-driverController.getRightX() * MaxAngularRate)
+                robotCentricDrive.withVelocityX(driverController_HID.getLeftX() * MaxSpeed) // Changed to use x
+                .withVelocityY(-driverController_HID.getLeftY() * MaxSpeed) // Changed to use y
+                .withRotationalRate(-driverController_HID.getRightX() * MaxAngularRate)
         ));
-
-
-
         
- //       drivetrain.setDefaultCommand(drivetrain.drive(-driverController.getLeftY() * MaxSpeed, -driverController.getLeftX() * MaxSpeed, -driverController.getRightX() * MaxAngularRate));
-
         driverController.a().whileTrue(drivetrain.applyRequest(() -> brake));
         driverController.b().whileTrue(drivetrain.applyRequest(() ->
             point.withModuleDirection(new Rotation2d(-driverController.getLeftY(), -driverController.getLeftX()))
         ));
 
+        /* 
         // Run SysId routines when holding back/start and X/Y.
         // Note that each routine should be run exactly once in a single log.
         driverController.back().and(driverController.y()).whileTrue(drivetrain.sysIdDynamic(Direction.kForward));
         driverController.back().and(driverController.x()).whileTrue(drivetrain.sysIdDynamic(Direction.kReverse));
         driverController.start().and(driverController.y()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kForward));
         driverController.start().and(driverController.x()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kReverse));
-
-        driverController.leftBumper().onTrue(drivetrain.runOnce(() -> drivetrain.seedFieldCentric()));
-
+*/
+        driverController.leftBumper().onTrue(drivetrain.runOnce(()->drivetrain.seedFieldCentric()));// THIS DESTROYS THE AUTOS
+         
+ /* Climb Controls
         driverController.povUp().whileTrue(climbForward);
         driverController.povDown().whileTrue(climbReverse);
         driverController.povUp().or(driverController.povDown()).negate().whileTrue(climbStop);
-
         driverController.povUp().and(driverController.povDown()).whileFalse(climbStop);
+*/
 
    //     driverController.rightTrigger().onTrue(new AlignToAprilTag(drivetrain, vision, .25).withTimeout(1));
-        driverController.leftTrigger().onTrue(new AlignToAprilTag2D(drivetrain, vision, 1).withTimeout(5));
+ //       driverController.leftTrigger().onTrue(new AlignToAprilTag2D(drivetrain, vision, 1).withTimeout(5));
         
+/*   Vision alignment?
         driverController.rightTrigger().whileTrue(drivetrain.applyRequest(()->
         robotCentricDrive.withVelocityX(-vision.getYaw()) 
         .withVelocityY(-driverController.getLeftY() * MaxSpeed) 
         .withRotationalRate(driverController.getRightX() * MaxAngularRate)
         ));
 
+  
         driverController.povLeft().onTrue(new InstantCommand(()->stateController.setAlignmentPoint(17)));
         driverController.povRight().onTrue(new InstantCommand(()->stateController.setAlignmentPoint(-17)));
         driverController.povUp().onTrue(new InstantCommand(()->stateController.setAlignmentPoint(0)));
-
+*/
         operatorController.a().onTrue(setIntakeMode);
         operatorController.b().onTrue(setHoldingMode);
         operatorController.x().onTrue(setPrePlacingMode);
@@ -174,7 +162,7 @@ public class RobotContainer {
         operatorController.povLeft().onTrue(setLevel2);
         operatorController.povRight().onTrue(setLevel3);
 
-        operatorController.leftTrigger().onTrue(new InstantCommand(()->elevator.resetNumRotations()));
+        operatorController.leftTrigger().onTrue(new InstantCommand(()->elevatorSubsystem.resetNumRotations()));
         operatorController.rightTrigger().onTrue(new InstantCommand(()->stateController.toggleControlMode()));
 
 //        operatorController.rightBumper().onTrue(new InstantCommand(()->stateController.rightBumper())); // Toggles between coral and algae
@@ -200,36 +188,34 @@ public class RobotContainer {
     }
     
     public void registerNamedCommands() {
-        NamedCommands.registerCommand("command name", new InstantCommand());
         NamedCommands.registerCommand("setIntakeMode", setIntakeMode);
         NamedCommands.registerCommand("setHoldingMode", setHoldingMode);
         NamedCommands.registerCommand("setPrePlacingMode", setPrePlacingMode);
         NamedCommands.registerCommand("setPlacingMode", setPlacingMode);
-        NamedCommands.registerCommand("setClimbMode", setClimbMode);
 
-        NamedCommands.registerCommand("setAlgaeMode", setAlgaeMode);
-        NamedCommands.registerCommand("setCoralMode", setCoralMode);
+//        NamedCommands.registerCommand("setAlgaeMode", setAlgaeMode);
+//        NamedCommands.registerCommand("setCoralMode", setCoralMode);
 
         NamedCommands.registerCommand("setLevel1", setLevel1);
         NamedCommands.registerCommand("setLevel2", setLevel2);
         NamedCommands.registerCommand("setLevel3", setLevel3);
         NamedCommands.registerCommand("setLevel4", setLevel4);
-
-        NamedCommands.registerCommand("intakeCoral", new IntakeCoral(elevator, Constants.ElevatorConstants.beamBreak));
-
-        NamedCommands.registerCommand("setProcessorMode", setProcessorMode);
-        NamedCommands.registerCommand("setNetMode", setNetMode);
-
-        NamedCommands.registerCommand("alignToAprilTag", alignToAprilTag);
-
     }
     public void createAutos(){
         autoChooser.setDefaultOption("no auto", null);
 
          
         // Trouble Shooting - Basic
-        autoChooser.addOption("Straight", new PathPlannerAuto("Straight"));
-        autoChooser.addOption("New Auto", new PathPlannerAuto("New Auto"));
+        autoChooser.addOption("Leave", new PathPlannerAuto("Leave"));
+
+        // 1 Coral Simple Autos
+        autoChooser.addOption("OBR-R6-1S", new PathPlannerAuto("OBR-R6-1S"));
+        autoChooser.addOption("OBR-R1-1S", new PathPlannerAuto("OBR-R1-1S"));
+        autoChooser.addOption("OBR-R2-1S", new PathPlannerAuto("OBR-R2-1S"));
+        autoChooser.addOption("OBL-R4-1S", new PathPlannerAuto("OBL-R4-1S"));
+        autoChooser.addOption("OBL-R3-1S", new PathPlannerAuto("OBL-R3-1S"));
+        autoChooser.addOption("OBL-R2-1S", new PathPlannerAuto("OBL-R2-1S"));
+        autoChooser.addOption("I-R5-1S", new PathPlannerAuto("I-R5-1S"));
 /*
         // Coral Cycle (Coral Station 1 and 2)
         autoChooser.addOption("S1-CC", new PathPlannerAuto("S1-CC"));

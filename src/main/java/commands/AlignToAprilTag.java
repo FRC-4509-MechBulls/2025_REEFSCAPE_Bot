@@ -60,14 +60,14 @@ public class AlignToAprilTag extends Command{
 
     public void execute() {
         if(targetPose != null) {
-            Pose2d currentPose = driveTrain.getPose();
+            Pose2d currentPose = driveTrain.getState().Pose;
 
             double xSpeed = xController.calculate(currentPose.getX(), targetPose.getX());
             double ySpeed = yController.calculate(currentPose.getY(), targetPose.getY());
             double rotationSpeed = thetaController.calculate(currentPose.getRotation().getRadians(), targetPose.getRotation().getRadians());
 
             ChassisSpeeds speeds = new ChassisSpeeds(xSpeed, ySpeed, rotationSpeed);
-            driveTrain.drive(speeds);
+ //           driveTrain.drive(speeds);
         }
     }
 
@@ -78,7 +78,7 @@ public class AlignToAprilTag extends Command{
     }
 
     public void end(boolean interrupted) {
-        driveTrain.drive(0,0,0);
+ //       driveTrain.drive(0,0,0);
     }
     
 }

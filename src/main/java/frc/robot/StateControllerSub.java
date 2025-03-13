@@ -19,6 +19,7 @@ import frc.robot.subsystems.ClimbSubsystem;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.ElevatorSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
+//import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.VisionSubsystem;
 
 public class StateControllerSub extends SubsystemBase{
@@ -51,7 +52,7 @@ public class StateControllerSub extends SubsystemBase{
     private VisionSubsystem visionSubsystem;
     private CommandSwerveDrivetrain driveSubsystem;
     private ElevatorSubsystem elevatorSubsystem;
-    private ShooterSubsystem shooterSubsystem;
+  //  private ShooterSubsystem shooterSubsystem;
     private ClimbSubsystem climbSubsystem;
     private static ControlState controlState = ControlState.stateController;
     boolean climbed;
@@ -61,18 +62,17 @@ public class StateControllerSub extends SubsystemBase{
     boolean holdingAlgae;
     SendableChooser<ControlState> controlStateChooser;
 
-    public StateControllerSub() {
+    public StateControllerSub(VisionSubsystem vision, ElevatorSubsystem elevator, ClimbSubsystem climb, CommandSwerveDrivetrain drivetrain) {
         state = State.holding;
         State lastState = State.holding;
         itemType = ItemType.coral;
         level = Level.level1;
         algaeObjective = AlgaeObjective.processor;
         algaeIntakeSource = AlgaeIntakeSource.level2;
-        visionSubsystem = new VisionSubsystem();
-        driveSubsystem = TunerConstants.createDrivetrain();
-        elevatorSubsystem = new ElevatorSubsystem();
-        shooterSubsystem = new ShooterSubsystem();
-        climbSubsystem = new ClimbSubsystem();
+        visionSubsystem = vision;
+        driveSubsystem = drivetrain;
+        elevatorSubsystem = elevator;
+        climbSubsystem = climb;
         climbed = false;
         controlStateChooser = new SendableChooser<ControlState>();
         controlStateChooser.setDefaultOption("StateControllerControl", ControlState.stateController);
@@ -113,11 +113,7 @@ public class StateControllerSub extends SubsystemBase{
     
     public void setRobotState(State desiredState){
         lastState = state;
-        if((lastState.equals(State.climbing) && !desiredState.equals(State.holding)) || (lastState.equals(State.placing) && !desiredState.equals(State.holding))){
-            return;
-        }
         state = desiredState;
-        
     }
     public void setItemType(ItemType desiredItemType){
         itemType = desiredItemType;
@@ -167,10 +163,10 @@ public class StateControllerSub extends SubsystemBase{
     }
 
     public void setShooterEF(double speed){
-        shooterSubsystem.setEF(speed);
+  //      shooterSubsystem.setEF(speed);
     }
     public void setShooterAngle(double angle){
-        shooterSubsystem.rotateShooter(angle);
+ //       shooterSubsystem.rotateShooter(angle);
     }
     public void outputCoral(double speed){
         elevatorSubsystem.outputCoral(speed);
@@ -190,7 +186,7 @@ public class StateControllerSub extends SubsystemBase{
     }
 
     public void periodic() {
-        controlState = controlStateChooser.getSelected();
+//        controlState = controlStateChooser.getSelected();
         updateSmartDashboard();
  //       updatePoseFromVision();
         holdingAlgae = SmartDashboard.getBoolean("holdingAlgae", true);
@@ -201,9 +197,9 @@ public class StateControllerSub extends SubsystemBase{
                 setElevatorHeight();
                 setShooterEF(0);
                 if(holdingAlgae){
-                    setShooterAngle(Constants.ShooterConstants.holdingAngle);
+ //                   setShooterAngle(Constants.ShooterConstants.holdingAngle);
                 } else{
-                    setShooterAngle(Constants.ShooterConstants.holdingNoAlgaeAngle);
+ //                   setShooterAngle(Constants.ShooterConstants.holdingNoAlgaeAngle);
                 }
                 
                 // toggleClimb(0);
@@ -212,18 +208,18 @@ public class StateControllerSub extends SubsystemBase{
             case intaking: 
                 if(itemType.equals(ItemType.algae)){
                     if(algaeIntakeSource.equals(AlgaeIntakeSource.level3)){
-                        setShooterAngle(Constants.ShooterConstants.upperReefAngle);
+ //                       setShooterAngle(Constants.ShooterConstants.upperReefAngle);
                     } else{
-                        setShooterAngle(Constants.ShooterConstants.lowerReefAngle);
+ //                       setShooterAngle(Constants.ShooterConstants.lowerReefAngle);
                     }
-                    setShooterEF(Constants.ShooterConstants.shooterIntakeEFSpeed);
+ //                   setShooterEF(Constants.ShooterConstants.shooterIntakeEFSpeed);
                 }
                 else if(itemType.equals(ItemType.coral)){
                     elevatorSubsystem.setHeight(Constants.ElevatorConstants.intakeHeight);
-                    outputCoral(-.5);
+                    outputCoral(-.75);
   //                      CommandScheduler.getInstance().schedule(new InstantCommand(()->elevatorSubsystem.outputCoral(-.75)));
                     if(!Constants.ElevatorConstants.beamBreak.get()){
-                        CommandScheduler.getInstance().schedule(new InstantCommand(()->elevatorSubsystem.outputCoral(-.3)).withTimeout(0.9));
+                        CommandScheduler.getInstance().schedule(new InstantCommand(()->elevatorSubsystem.outputCoral(-.58)).withTimeout(1.75));
                         state = State.holding;
                     }            
                 }
@@ -235,10 +231,10 @@ public class StateControllerSub extends SubsystemBase{
                 }
                 else if(itemType.equals(ItemType.algae)){
                     if(algaeObjective.equals(AlgaeObjective.net)){
-                        setShooterAngle(Constants.ShooterConstants.netAngle);
+ //                       setShooterAngle(Constants.ShooterConstants.netAngle);
                     }
                     else if(algaeObjective.equals(AlgaeObjective.processor)) {
-                        setShooterAngle(Constants.ShooterConstants.processorAngle);
+  //                      setShooterAngle(Constants.ShooterConstants.processorAngle);
                     }
                 }
                 break;
@@ -251,16 +247,16 @@ public class StateControllerSub extends SubsystemBase{
                     }
                     else if(itemType.equals(ItemType.algae)){
                         if(algaeObjective.equals(AlgaeObjective.net)){
-                            setShooterEF(Constants.ShooterConstants.shooterShootEFSpeed);
+ //                           setShooterEF(Constants.ShooterConstants.shooterShootEFSpeed);
                         }
                         else if(algaeObjective.equals(AlgaeObjective.processor)) {
-                            setShooterEF(Constants.ShooterConstants.shooterPlaceEFSpeed);
+ //                           setShooterEF(Constants.ShooterConstants.shooterPlaceEFSpeed);
                         }
                     }
                 break;
             case climbing:
                 setElevatorHeight();
-                setShooterAngle(Constants.ShooterConstants.holdingAngle);
+ //               setShooterAngle(Constants.ShooterConstants.holdingAngle);
                 setShooterEF(0);
                 break;
         }

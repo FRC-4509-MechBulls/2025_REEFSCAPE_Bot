@@ -7,7 +7,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Start3ToReef6"
+            "pathName": "OBL-R2"
           }
         },
         {
@@ -39,35 +39,11 @@
           "data": {
             "name": "setPlacingMode"
           }
-        },
-        {
-          "type": "wait",
-          "data": {
-            "waitTime": 0.5
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "setHoldingMode"
-          }
-        },
-        {
-          "type": "wait",
-          "data": {
-            "waitTime": 2.0
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "Reef6ToSource"
-          }
         }
       ]
     }
   },
   "resetOdom": true,
-  "folder": null,
+  "folder": "1 Score",
   "choreoAuto": false
 }
