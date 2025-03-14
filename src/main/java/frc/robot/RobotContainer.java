@@ -18,6 +18,7 @@ import com.revrobotics.spark.SparkMax;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.simulation.ElevatorSim;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -28,6 +29,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RepeatCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
@@ -44,8 +46,8 @@ import frc.robot.subsystems.VisionSubsystem;
 
 
 public class RobotContainer {
-    private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
-    private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
+    private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond) * Constants.DriveConstants.maxSpeed; // kSpeedAt12Volts desired top speed
+    private double MaxAngularRate = RotationsPerSecond.of(1).in(RadiansPerSecond) * Constants.DriveConstants.maxSpeed; // 3/4 of a rotation per second max angular velocity
 
     /* Setting up bindings for necessary control of the swerve drive platform */
     private final SwerveRequest.RobotCentric robotCentricDrive = new SwerveRequest.RobotCentric()
@@ -54,7 +56,7 @@ public class RobotContainer {
     private final SwerveRequest.FieldCentric fieldCentricDrive = new SwerveRequest.FieldCentric()
             .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1) // Add a 10% deadband
             .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // Use open-loop control for drive motors
-    private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
+    private final SwerveRequest.SwerveDriveBrake brake = new  SwerveRequest.SwerveDriveBrake();
     private final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
 
     private final Telemetry logger = new Telemetry(MaxSpeed);
@@ -163,6 +165,8 @@ public class RobotContainer {
         operatorController.povRight().onTrue(setLevel3);
 
         operatorController.leftTrigger().onTrue(new InstantCommand(()->elevatorSubsystem.resetNumRotations()));
+        operatorController.leftBumper().onTrue(new InstantCommand(()->elevatorSubsystem.adjustNumRotations(-1))); // Moves elevator up
+        operatorController.rightBumper().onTrue(new InstantCommand(()->elevatorSubsystem.adjustNumRotations(1))); // Moves elevator down
         operatorController.rightTrigger().onTrue(new InstantCommand(()->stateController.toggleControlMode()));
 
 //        operatorController.rightBumper().onTrue(new InstantCommand(()->stateController.rightBumper())); // Toggles between coral and algae
@@ -204,18 +208,33 @@ public class RobotContainer {
     public void createAutos(){
         autoChooser.setDefaultOption("no auto", null);
 
-         
         // Trouble Shooting - Basic
-        autoChooser.addOption("Leave", new PathPlannerAuto("Leave"));
+//        autoChooser.addOption("Leave", new PathPlannerAuto("Leave"));
+
+        autoChooser.addOption("Leave", drivetrain.applyRequest(() ->
+        robotCentricDrive.withVelocityX(0) // Drive forward with negative Y (forward), changed to use X
+            .withVelocityY(MaxSpeed/3) // Drive left with negative X (left), changed to use Y
+            .withRotationalRate(0) // Drive counterclockwise with negative X (left)
+        ).withTimeout(1));
+
+/* 
+        autoChooser.addOption("Center1Score", drivetrain.applyRequest(() ->
+        robotCentricDrive.withVelocityX(0) 
+            .withVelocityY(MaxSpeed/3) 
+            .withRotationalRate(0) 
+        ).withTimeout(1).andThen(setLevel3).andThen(setPrePlacingMode).andThen(new WaitCommand(2)).andThen(setPlacingMode));
+*/
+
 
         // 1 Coral Simple Autos
-        autoChooser.addOption("OBR-R6-1S", new PathPlannerAuto("OBR-R6-1S"));
-        autoChooser.addOption("OBR-R1-1S", new PathPlannerAuto("OBR-R1-1S"));
-        autoChooser.addOption("OBR-R2-1S", new PathPlannerAuto("OBR-R2-1S"));
-        autoChooser.addOption("OBL-R4-1S", new PathPlannerAuto("OBL-R4-1S"));
-        autoChooser.addOption("OBL-R3-1S", new PathPlannerAuto("OBL-R3-1S"));
-        autoChooser.addOption("OBL-R2-1S", new PathPlannerAuto("OBL-R2-1S"));
-        autoChooser.addOption("I-R5-1S", new PathPlannerAuto("I-R5-1S"));
+//        autoChooser.addOption("OBR-R6-1S", new PathPlannerAuto("OBR-R6-1S"));
+//        autoChooser.addOption("OBR-R1-1S", new PathPlannerAuto("OBR-R1-1S"));
+//        autoChooser.addOption("OBR-R2-1S", new PathPlannerAuto("OBR-R2-1S"));
+//        autoChooser.addOption("OBL-R4-1S", new PathPlannerAuto("OBL-R4-1S"));
+//        autoChooser.addOption("OBL-R3-1S", new PathPlannerAuto("OBL-R3-1S"));
+//        autoChooser.addOption("OBL-R2-1S", new PathPlannerAuto("OBL-R2-1S"));
+//        autoChooser.addOption("I-R5-1S", new PathPlannerAuto("I-R5-1S"));
+
 /*
         // Coral Cycle (Coral Station 1 and 2)
         autoChooser.addOption("S1-CC", new PathPlannerAuto("S1-CC"));

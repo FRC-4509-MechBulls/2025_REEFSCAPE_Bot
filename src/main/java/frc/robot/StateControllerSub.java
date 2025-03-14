@@ -113,6 +113,11 @@ public class StateControllerSub extends SubsystemBase{
     
     public void setRobotState(State desiredState){
         lastState = state;
+        if(desiredState.equals(State.holding) && lastState.equals(State.placing) && level.equals(Level.level4)){
+            state = State.pre_placing;
+            outputCoral(0);
+            level = Level.level1;
+        }
         state = desiredState;
     }
     public void setItemType(ItemType desiredItemType){
@@ -242,7 +247,11 @@ public class StateControllerSub extends SubsystemBase{
             case placing: 
                     if(itemType.equals(ItemType.coral)){
                         if(controlState.equals(ControlState.stateController)){
-                            outputCoral(-.8);
+                            if(level.equals(Level.level4)){
+                                outputCoral(-1);
+                            } else{
+                                outputCoral(-.8);
+                            }
                         }
                     }
                     else if(itemType.equals(ItemType.algae)){

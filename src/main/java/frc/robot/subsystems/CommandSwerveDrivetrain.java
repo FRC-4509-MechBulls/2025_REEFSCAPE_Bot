@@ -16,8 +16,13 @@ import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 
 import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
+import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -57,6 +62,11 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private final SwerveRequest.SysIdSwerveRotation m_rotationCharacterization = new SwerveRequest.SysIdSwerveRotation();
 
     private Field2d field = new Field2d();
+
+    private SwerveDrivePoseEstimator poseEstimator;
+    private SwerveDriveOdometry odometry; 
+    
+
 
     /* SysId routine for characterizing translation. This is used to find PID gains for the drive motors. */
     private final SysIdRoutine m_sysIdRoutineTranslation = new SysIdRoutine(
@@ -138,6 +148,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         if (Utils.isSimulation()) {
             startSimThread();
         }
+        configurePoseEstimator();
         configureAutoBuilder();
         putField();
     }
@@ -164,6 +175,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         if (Utils.isSimulation()) {
             startSimThread();
         }
+        configurePoseEstimator();
         configureAutoBuilder();
         putField();
     }
@@ -198,6 +210,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         if (Utils.isSimulation()) {
             startSimThread();
         }
+        configurePoseEstimator();
         configureAutoBuilder();
         putField();
     }
@@ -207,33 +220,67 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     public Pose2d getCorrectedPose(){
         return new Pose2d(getState().Pose.getTranslation(), getState().Pose.getRotation().minus(new Rotation2d(Math.PI/2)));
     }
+    public ChassisSpeeds getCorrectedSpeeds(){
+        return new ChassisSpeeds(getState().Speeds.vyMetersPerSecond, getState().Speeds.vxMetersPerSecond, getState().Speeds.omegaRadiansPerSecond);
+    }
+    public SwerveModulePosition[] getModulePositions(){
+        SwerveModulePosition[] positions = new SwerveModulePosition[4];
+        for(int i = 0; i < 4; i++){
+            positions[i] = this.getModule(i).getPosition(true);
+        }
+        return positions;
+    }
+    public void configurePoseEstimator(){
+        odometry = new SwerveDriveOdometry(getKinematics(), this.getPigeon2().getRotation2d().minus(new Rotation2d(Math.PI/2)), getModulePositions());
+        poseEstimator = new SwerveDrivePoseEstimator(getKinematics(), this.getPigeon2().getRotation2d(), getModulePositions(), this.getState().Pose);
+    }
+    public void resetCorrectedPose(Pose2d newPose){
+        this.resetPose(newPose);
+        odometry.resetPose(newPose);
+        poseEstimator.resetPose(newPose);
+    }
     private void configureAutoBuilder() {
         try {
             var config = RobotConfig.fromGUISettings();
             AutoBuilder.configure(
-                () -> getCorrectedPose(),   // Supplier of current robot pose
-                this::resetPose,         // Consumer for seeding pose against auto
+                () -> poseEstimator.getEstimatedPosition(),   // Supplier of current robot pose
+                this::resetCorrectedPose,         // Consumer for seeding pose against auto
                 () -> getState().Speeds, // Supplier of current robot speeds
                 // Consumer of ChassisSpeeds and feedforwards to drive the robot
                 (speeds, feedforwards) -> setControl(
-                    m_pathApplyRobotSpeeds.withSpeeds(speeds)
+                    m_pathApplyRobotSpeeds.withSpeeds(new ChassisSpeeds(speeds.vyMetersPerSecond, speeds.vxMetersPerSecond, speeds.omegaRadiansPerSecond))
                         .withWheelForceFeedforwardsX(feedforwards.robotRelativeForcesXNewtons())
                         .withWheelForceFeedforwardsY(feedforwards.robotRelativeForcesYNewtons())
                 ),
                 new PPHolonomicDriveController(
                     // PID constants for translation
-                    new PIDConstants(10, 0, 0),
+                    new PIDConstants(5, 0, 0),
                     // PID constants for rotation
-                    new PIDConstants(7, 0, 0)
+                    new PIDConstants(5, 0, 0)
                 ),
                 config,
                 // Assume the path needs to be flipped for Red vs Blue, this is normally the case
-                () -> DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red,
+                () -> {
+                    // Boolean supplier that controls when the path will be mirrored for the red alliance
+                    // This will flip the path being followed to the red side of the field.
+                    // THE ORIGIN WILL REMAIN ON THE BLUE SIDE
+      
+                    var alliance = DriverStation.getAlliance();
+                    if (alliance.isPresent()) {
+                      return alliance.get() == DriverStation.Alliance.Red;
+                    }
+                    return false;
+                  },
                 this // Subsystem for requirements
             );
         } catch (Exception ex) {
             DriverStation.reportError("Failed to load PathPlanner config and configure AutoBuilder", ex.getStackTrace());
         }
+    }
+    public boolean shouldFlip() {
+        DriverStation.Alliance alliance = DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue);
+        
+        return alliance == DriverStation.Alliance.Red;
     }
 
     /**
@@ -270,7 +317,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     @Override
     public void periodic() {
-        field.setRobotPose(this.getState().Pose);
+        odometry.update(this.getPigeon2().getRotation2d(), getModulePositions());
+        poseEstimator.update(this.getPigeon2().getRotation2d().minus(new Rotation2d(Math.PI)), getModulePositions());
+        field.setRobotPose(odometry.getPoseMeters());
         /*
          * Periodically try to apply the operator perspective.
          * If we haven't applied the operator perspective before, then we should apply it regardless of DS state.

@@ -126,6 +126,11 @@ public class ElevatorSubsystem extends SubsystemBase{
     public void resetNumRotations(){
         rotationCount = 0;
     }
+    public void adjustNumRotations(double rotations){
+        rotationCount += rotations;
+    }
+
+
     public double getContinuousPosition(){
         double currentPosition = elevatorEncoder.get();
 

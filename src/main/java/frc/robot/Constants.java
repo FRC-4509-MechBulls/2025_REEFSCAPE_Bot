@@ -27,7 +27,7 @@ public class Constants {
         public static final double level1Height = 2.05;
         public static final double level2Height = 2.21;
         public static final double level3Height = 3.65;
-        public static final double level4Height =  5.72; 
+        public static final double level4Height =  5.68; 
         public static final double intakeHeight = .55;
 
         public static final double elevatorIntakeEFSpeed = -0.5;
