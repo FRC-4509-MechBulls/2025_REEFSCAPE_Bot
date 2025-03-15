@@ -221,10 +221,9 @@ public class StateControllerSub extends SubsystemBase{
                 }
                 else if(itemType.equals(ItemType.coral)){
                     elevatorSubsystem.setHeight(Constants.ElevatorConstants.intakeHeight);
-                    outputCoral(-.75);
-  //                      CommandScheduler.getInstance().schedule(new InstantCommand(()->elevatorSubsystem.outputCoral(-.75)));
+                    outputCoral(-.5);
                     if(!Constants.ElevatorConstants.beamBreak.get()){
-                        CommandScheduler.getInstance().schedule(new InstantCommand(()->elevatorSubsystem.outputCoral(-.58)).withTimeout(1.75));
+                        CommandScheduler.getInstance().schedule(new InstantCommand(()->elevatorSubsystem.outputCoral(-.3)).withTimeout(1));
                         state = State.holding;
                     }            
                 }
@@ -246,13 +245,13 @@ public class StateControllerSub extends SubsystemBase{
 
             case placing: 
                     if(itemType.equals(ItemType.coral)){
-                        if(controlState.equals(ControlState.stateController)){
                             if(level.equals(Level.level4)){
                                 outputCoral(-1);
+                            } else if (level.equals(Level.level1)){
+                                outputCoral(-.2);
                             } else{
-                                outputCoral(-.8);
+                                outputCoral(-.6);
                             }
-                        }
                     }
                     else if(itemType.equals(ItemType.algae)){
                         if(algaeObjective.equals(AlgaeObjective.net)){
