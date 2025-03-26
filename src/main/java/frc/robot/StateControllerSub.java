@@ -267,7 +267,7 @@ public class StateControllerSub extends SubsystemBase{
                             } else if (level.equals(Level.level1)){
                                 outputCoral(-.3);
                             } else{
-                                outputCoral(-.8);
+                                outputCoral(-.6);
                             }
                     }
                     else if(itemType.equals(ItemType.algae)){

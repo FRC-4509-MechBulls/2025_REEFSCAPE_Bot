@@ -35,6 +35,7 @@ public class Constants {
 
         public static final double distancePerRotation = 2; // Inches
 
+<<<<<<< HEAD
         public static final double minimumHeight = 0.4 + 0.3;
         public static final double holdingHeight = 0.9;
         public static final double level1Height = 2.05 + 0.3;
@@ -42,6 +43,15 @@ public class Constants {
         public static final double level3Height = 3.74 + 0.4;
         public static final double level4Height =  5 + 0.3;  // 5.5
         public static final double intakeHeight = 0.9; // .82
+=======
+        public static final double minimumHeight = 0.4;
+        public static final double holdingHeight = 0.4;
+        public static final double level1Height = 2.05;
+        public static final double level2Height = 2.27;
+        public static final double level3Height = 3.74;
+        public static final double level4Height =  5;  // 5.5
+        public static final double intakeHeight = .55;
+>>>>>>> origin/elevatorBranch
 
         public static final double elevatorIntakeEFSpeed = -0.5;
         public static final double elevatorEjectEFSpeed = 0.5;
