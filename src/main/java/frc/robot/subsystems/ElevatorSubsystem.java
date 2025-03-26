@@ -12,6 +12,7 @@ import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkMaxConfig;
+import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.wpilibj.DigitalInput;
@@ -66,6 +67,7 @@ public class ElevatorSubsystem extends SubsystemBase{
         
         coralClaw = new SparkMax(Constants.ElevatorConstants.clawMotorID, MotorType.kBrushless);
         coralClawConfig = new SparkMaxConfig();
+        coralClawConfig.idleMode(IdleMode.kBrake);
         coralClawConfig.smartCurrentLimit(40);
         coralClawConfig.secondaryCurrentLimit(60);
         coralClawConfig.voltageCompensation(12);
@@ -87,7 +89,8 @@ public class ElevatorSubsystem extends SubsystemBase{
 
     public void periodic() {
         currentPosition = getContinuousPosition();
-        boolean isUpperLimitHit = upperLimitSwitch.get(); 
+ //       boolean isUpperLimitHit = upperLimitSwitch.get(); 
+        boolean isUpperLimitHit = false;
 
         if(StateControllerSub.getControlState().equals(ControlState.stateController)){
             if(targetHeight > currentPosition && !isUpperLimitHit){
@@ -109,7 +112,8 @@ public class ElevatorSubsystem extends SubsystemBase{
         SmartDashboard.putNumber("elevatorSetpoint", targetHeight);
         SmartDashboard.putBoolean("upperLimitSwitch", upperLimitSwitch.get());
         SmartDashboard.putBoolean("lowerLimitSwitch", lowerLimitSwitch.get());
-        SmartDashboard.putBoolean("coralBeamBreak", Constants.ElevatorConstants.beamBreak.get());
+        SmartDashboard.putBoolean("coralLowerBeamBreak", Constants.ElevatorConstants.lowerBeamBreak.get());
+        SmartDashboard.putBoolean("coralUpperBeamBreak", Constants.ElevatorConstants.upperbeamBreak.get());
         SmartDashboard.putNumber("elevatorUpwardPIDValue", elevatorUpwardController.calculate(getContinuousPosition(), targetHeight));
         SmartDashboard.putNumber("elevatorDownwardPIDValue", elevatorDownwardController.calculate(getContinuousPosition(), targetHeight));
     }

@@ -2,7 +2,10 @@ package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.*;
 
+import java.security.cert.X509CRL;
 import java.util.function.Supplier;
+
+import org.photonvision.estimation.VisionEstimation;
 
 import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
@@ -16,15 +19,21 @@ import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 
 import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StructPublisher;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
@@ -34,7 +43,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-
+import frc.robot.Constants;
 import frc.robot.generated.TunerConstants.TunerSwerveDrivetrain;
 
 /**
@@ -45,6 +54,13 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private static final double kSimLoopPeriod = 0.005; // 5 ms
     private Notifier m_simNotifier = null;
     private double m_lastSimTime;
+
+    PIDController xController = new PIDController(Constants.DriveConstants.xP,Constants.DriveConstants.xI,Constants.DriveConstants.xD);
+    PIDController yController = new PIDController(Constants.DriveConstants.yP,Constants.DriveConstants.yI,Constants.DriveConstants.yD);
+    PIDController thetaController = new PIDController(Constants.DriveConstants.thetaP,Constants.DriveConstants.thetaI,Constants.DriveConstants.thetaD);
+
+    StructPublisher<Pose2d> publisher = NetworkTableInstance.getDefault()
+        .getStructTopic("DialgaPose", Pose2d.struct).publish();
 
     /* Blue alliance sees forward as 0 degrees (toward red alliance wall) */
     private static final Rotation2d kBlueAlliancePerspectiveRotation = Rotation2d.kZero;
@@ -63,8 +79,6 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     private Field2d field = new Field2d();
 
-    private SwerveDrivePoseEstimator poseEstimator;
-    private SwerveDriveOdometry odometry; 
     
 
 
@@ -151,6 +165,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         configurePoseEstimator();
         configureAutoBuilder();
         putField();
+        this.resetRotation(this.getPigeon2().getRotation2d());
+        this.getPigeon2().reset();
     }
 
     /**
@@ -178,6 +194,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         configurePoseEstimator();
         configureAutoBuilder();
         putField();
+        this.resetRotation(this.getPigeon2().getRotation2d());
+        this.getPigeon2().reset();
     }
 
     /**
@@ -213,12 +231,14 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         configurePoseEstimator();
         configureAutoBuilder();
         putField();
+        this.resetRotation(this.getPigeon2().getRotation2d());
+        this.getPigeon2().reset();
     }
     private void putField(){
         SmartDashboard.putData("field2d",field);
     }
     public Pose2d getCorrectedPose(){
-        return new Pose2d(getState().Pose.getTranslation(), getState().Pose.getRotation().minus(new Rotation2d(Math.PI/2)));
+        return new Pose2d(getState().Pose.getTranslation(), getState().Pose.getRotation());
     }
     public ChassisSpeeds getCorrectedSpeeds(){
         return new ChassisSpeeds(getState().Speeds.vyMetersPerSecond, getState().Speeds.vxMetersPerSecond, getState().Speeds.omegaRadiansPerSecond);
@@ -231,32 +251,37 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         return positions;
     }
     public void configurePoseEstimator(){
-        odometry = new SwerveDriveOdometry(getKinematics(), this.getPigeon2().getRotation2d().minus(new Rotation2d(Math.PI/2)), getModulePositions());
-        poseEstimator = new SwerveDrivePoseEstimator(getKinematics(), this.getPigeon2().getRotation2d(), getModulePositions(), this.getState().Pose);
+        xController.setTolerance(Constants.DriveConstants.xTolerance);
+        xController.setIZone(1);
+        yController.setTolerance(Constants.DriveConstants.yTolerance);
+        yController.setIZone(1);
+        thetaController.setTolerance(Constants.DriveConstants.thetaTolerance);
     }
     public void resetCorrectedPose(Pose2d newPose){
         this.resetPose(newPose);
-        odometry.resetPose(newPose);
-        poseEstimator.resetPose(newPose);
+        /* Maybe fix?
+         * this.resetPose(new Rotation2d, new Pose2d(currentPose.getY(), currentPose.getX(), currentPose.getRotation()));
+         */
     }
+
     private void configureAutoBuilder() {
         try {
             var config = RobotConfig.fromGUISettings();
             AutoBuilder.configure(
-                () -> poseEstimator.getEstimatedPosition(),   // Supplier of current robot pose
+                () -> this.getState().Pose,   // Supplier of current robot pose
                 this::resetCorrectedPose,         // Consumer for seeding pose against auto
-                () -> getState().Speeds, // Supplier of current robot speeds
+                () -> this.getState().Speeds, // Supplier of current robot speeds
                 // Consumer of ChassisSpeeds and feedforwards to drive the robot
                 (speeds, feedforwards) -> setControl(
-                    m_pathApplyRobotSpeeds.withSpeeds(new ChassisSpeeds(speeds.vyMetersPerSecond, speeds.vxMetersPerSecond, speeds.omegaRadiansPerSecond))
+                    m_pathApplyRobotSpeeds.withSpeeds(new ChassisSpeeds(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond, speeds.omegaRadiansPerSecond))
                         .withWheelForceFeedforwardsX(feedforwards.robotRelativeForcesXNewtons())
                         .withWheelForceFeedforwardsY(feedforwards.robotRelativeForcesYNewtons())
                 ),
                 new PPHolonomicDriveController(
                     // PID constants for translation
-                    new PIDConstants(5, 0, 0),
+                    new PIDConstants(5, 0, .1),
                     // PID constants for rotation
-                    new PIDConstants(5, 0, 0)
+                    new PIDConstants(.3, 0, 0.1)
                 ),
                 config,
                 // Assume the path needs to be flipped for Red vs Blue, this is normally the case
@@ -283,6 +308,15 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         return alliance == DriverStation.Alliance.Red;
     }
 
+    public void applyOperatorPerspective(){
+        if(DriverStation.getAlliance().isPresent()){
+            if(DriverStation.getAlliance().get().equals(DriverStation.Alliance.Blue)){
+                this.resetRotation(kBlueAlliancePerspectiveRotation);
+            } else{
+                this.resetRotation(kRedAlliancePerspectiveRotation);
+            }
+        }
+    }
     /**
      * Returns a command that applies the specified control request to this swerve drivetrain.
      *
@@ -317,9 +351,13 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     @Override
     public void periodic() {
-        odometry.update(this.getPigeon2().getRotation2d(), getModulePositions());
-        poseEstimator.update(this.getPigeon2().getRotation2d().minus(new Rotation2d(Math.PI)), getModulePositions());
-        field.setRobotPose(odometry.getPoseMeters());
+
+        field.setRobotPose(this.getState().Pose);
+        publisher.set(this.getState().Pose);
+        SmartDashboard.putNumber("Heading", this.getPigeon2().getRotation2d().getDegrees());
+        
+
+
         /*
          * Periodically try to apply the operator perspective.
          * If we haven't applied the operator perspective before, then we should apply it regardless of DS state.
@@ -387,4 +425,33 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     ) {
         super.addVisionMeasurement(visionRobotPoseMeters, Utils.fpgaToCurrentTime(timestampSeconds), visionMeasurementStdDevs);
     }
+
+    public ChassisSpeeds driveToClosestPose() {
+
+        Pose2d currentPose = this.getState().Pose;
+        Pose2d closestPose = currentPose.nearest(Constants.DriveConstants.aprilTagAlignmentPoses);
+
+        double xSpeed = xController.calculate(currentPose.getX(), closestPose.getX());
+        double ySpeed = yController.calculate(currentPose.getY(), closestPose.getY());
+        double thetaSpeed = thetaController.calculate(currentPose.getRotation().getDegrees(), closestPose.getRotation().getDegrees());
+
+        SmartDashboard.putNumber("xError", currentPose.getX()-closestPose.getX());
+        SmartDashboard.putNumber("xPID", xSpeed);
+        SmartDashboard.putNumber("yError", currentPose.getY()-closestPose.getY());
+        SmartDashboard.putNumber("yPID", ySpeed);
+        SmartDashboard.putNumber("thetaError", currentPose.getRotation().getRadians()-closestPose.getRotation().getRadians());
+        SmartDashboard.putNumber("thetaPID", thetaSpeed);
+
+        double[] currentPoseArray = {currentPose.getX(), currentPose.getY(), currentPose.getRotation().getDegrees()};
+        SmartDashboard.putNumberArray("poseCoordinates", currentPoseArray);
+        double[] closestPoseArray = {closestPose.getX(), closestPose.getY(), closestPose.getRotation().getDegrees()};
+        SmartDashboard.putNumberArray("closestPoseCoordinates", closestPoseArray);
+
+        ChassisSpeeds speeds = ChassisSpeeds.fromFieldRelativeSpeeds(new ChassisSpeeds(xSpeed, ySpeed, thetaSpeed), this.getPigeon2().getRotation2d());
+        speeds = new ChassisSpeeds(-xSpeed, -ySpeed, thetaSpeed);
+        return speeds;
+    }
+
+    
+
 }

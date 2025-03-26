@@ -4,8 +4,14 @@ import java.util.Optional;
 
 import org.photonvision.EstimatedRobotPose;
 
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation3d;
+import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.math.geometry.Translation3d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.Timer;
@@ -84,7 +90,7 @@ public class StateControllerSub extends SubsystemBase{
         alignmentPoint = 0;
     }
 
-    private Pose2d robotPose = new Pose2d();
+
 
     public static ControlState getControlState(){
         return controlState;
@@ -134,10 +140,10 @@ public class StateControllerSub extends SubsystemBase{
     }
 
     public void updatePoseFromVision() {
-        Optional<EstimatedRobotPose> result = visionSubsystem.getEstimatedGlobalPose(robotPose);
+        Optional<EstimatedRobotPose> result = visionSubsystem.getEstimatedGlobalPose(driveSubsystem.getState().Pose);
         if(result.isPresent()){
             Pose2d estimatedPose = result.get().estimatedPose.toPose2d();
-            driveSubsystem.addVisionMeasurement(estimatedPose, Timer.getFPGATimestamp());
+            driveSubsystem.addVisionMeasurement(estimatedPose, Timer.getFPGATimestamp(), VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5)));
         }
     }
 
@@ -191,14 +197,17 @@ public class StateControllerSub extends SubsystemBase{
     }
 
     public void periodic() {
-//        controlState = controlStateChooser.getSelected();
         updateSmartDashboard();
  //       updatePoseFromVision();
-        holdingAlgae = SmartDashboard.getBoolean("holdingAlgae", true);
 
         switch(state){
             case holding: 
-                stopCoral();
+                if(!Constants.ElevatorConstants.lowerBeamBreak.get()){
+                    outputCoral(.05);
+                } else {
+                    stopCoral();
+                }   
+               
                 setElevatorHeight();
                 setShooterEF(0);
                 if(holdingAlgae){
@@ -221,11 +230,19 @@ public class StateControllerSub extends SubsystemBase{
                 }
                 else if(itemType.equals(ItemType.coral)){
                     elevatorSubsystem.setHeight(Constants.ElevatorConstants.intakeHeight);
-                    outputCoral(-.5);
-                    if(!Constants.ElevatorConstants.beamBreak.get()){
-                        CommandScheduler.getInstance().schedule(new InstantCommand(()->elevatorSubsystem.outputCoral(-.3)).withTimeout(1));
-                        state = State.holding;
+                    outputCoral(-.3);
+
+                    if(!Constants.ElevatorConstants.lowerBeamBreak.get() && Constants.ElevatorConstants.upperbeamBreak.get()){
+                         state = State.holding;
+                         stopCoral();
                     }            
+                    /*  After second beamBreak
+
+                    if(!Constants.ElevatorConstants.lowerBeamBreak.get() && Constants.ElevatorConstants.upperBeamBreak.get()){
+                        state = State.holding;
+                    }
+
+                    */
                 }
                 break;
 
@@ -246,11 +263,11 @@ public class StateControllerSub extends SubsystemBase{
             case placing: 
                     if(itemType.equals(ItemType.coral)){
                             if(level.equals(Level.level4)){
-                                outputCoral(-1);
+                                outputCoral(-3);
                             } else if (level.equals(Level.level1)){
-                                outputCoral(-.2);
+                                outputCoral(-.3);
                             } else{
-                                outputCoral(-.6);
+                                outputCoral(-.8);
                             }
                     }
                     else if(itemType.equals(ItemType.algae)){
@@ -333,9 +350,32 @@ public class StateControllerSub extends SubsystemBase{
     public ElevatorSubsystem getElevator(){
         return elevatorSubsystem;
     }
-    public void setAlignmentPoint(double point){
-        visionSubsystem.setAlignmentPoint(point);
-        alignmentPoint = point;
-    }
 
+    private ChassisSpeeds lastKnownSpeeds = new ChassisSpeeds();
+    public ChassisSpeeds driveToAprilTag(){
+        Optional<Transform3d> robotToTag = visionSubsystem.getRobotToTag();
+        if(!robotToTag.isEmpty()){
+            
+            Transform3d desiredOffset = new Transform3d(
+                new Translation3d(-1.0, 0.0, 0.0), // 1 meter "back" from the tag
+                new Rotation3d(0, 0, Math.PI) // Turn to face the tag
+            );
+            Transform3d robotToGoal = robotToTag.get().plus(desiredOffset);
+            ChassisSpeeds speeds = new ChassisSpeeds(
+                robotToGoal.getX() * 1,  // Forward/backward
+                robotToGoal.getY() * 1,  // Strafe
+                robotToGoal.getRotation().getZ() // Rotate
+            );
+            lastKnownSpeeds = speeds;
+            double[] driveSpeeds = {robotToGoal.getX(),  
+                robotToGoal.getY(),  
+                robotToGoal.getRotation().getZ()};
+            SmartDashboard.putNumberArray("aprilTagSpeeds", driveSpeeds);
+            double[] transformArray = {robotToGoal.getX(), robotToGoal.getY(), robotToGoal.getRotation().toRotation2d().getDegrees()};
+            SmartDashboard.putNumberArray("transformCoordinates", transformArray);
+            return speeds;
+        }
+        return lastKnownSpeeds;
+    }
+    
 }

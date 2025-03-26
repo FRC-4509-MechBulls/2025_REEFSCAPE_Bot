@@ -47,7 +47,7 @@ import frc.robot.subsystems.VisionSubsystem;
 
 public class RobotContainer {
     private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond) * Constants.DriveConstants.maxSpeed; // kSpeedAt12Volts desired top speed
-    private double MaxAngularRate = RotationsPerSecond.of(1).in(RadiansPerSecond) * Constants.DriveConstants.maxSpeed; // 3/4 of a rotation per second max angular velocity
+    private double MaxAngularRate = RotationsPerSecond.of(2).in(RadiansPerSecond) * Constants.DriveConstants.maxSpeed; // 3/4 of a rotation per second max angular velocity
 
     /* Setting up bindings for necessary control of the swerve drive platform */
     private final SwerveRequest.RobotCentric robotCentricDrive = new SwerveRequest.RobotCentric()
@@ -71,6 +71,7 @@ public class RobotContainer {
     public final ClimbSubsystem climbSubsystem = new ClimbSubsystem();
     public final StateControllerSub stateController = new StateControllerSub(visionSubsystem, elevatorSubsystem, climbSubsystem, drivetrain);
     
+
     SendableChooser<Command> autoChooser = new SendableChooser<>();
 
     InstantCommand setIntakeMode = new InstantCommand(()->stateController.setRobotState(State.intaking));
@@ -102,20 +103,96 @@ public class RobotContainer {
         // and Y is defined as to the left according to WPILib convention.
     
         drivetrain.setDefaultCommand(
-            // Drivetrain will execute this command periodically
+            // Drivetrain will execute this command periodically // all negative values
             drivetrain.applyRequest(() ->
-                fieldCentricDrive.withVelocityX(driverController_HID.getLeftX() * MaxSpeed) // Drive forward with negative Y (forward), changed to use X
-                    .withVelocityY(-driverController_HID.getLeftY() * MaxSpeed) // Drive left with negative X (left), changed to use Y
-                    .withRotationalRate(-driverController_HID.getRightX() * MaxAngularRate) // Drive counterclockwise with negative X (left)
+                fieldCentricDrive.withVelocityX(driverController_HID.getLeftY() * MaxSpeed) // Drive forward with negative Y (forward), changed to use X
+                    .withVelocityY(driverController_HID.getLeftX() * MaxSpeed) // Drive left with negative X (left), changed to use Y
+                    .withRotationalRate(driverController_HID.getRightX() * MaxAngularRate) // Drive counterclockwise with negative X (left)
             )
         );
 
           
         driverController.rightBumper().whileTrue(drivetrain.applyRequest(()->
-                robotCentricDrive.withVelocityX(driverController_HID.getLeftX() * MaxSpeed) // Changed to use x
-                .withVelocityY(-driverController_HID.getLeftY() * MaxSpeed) // Changed to use y
-                .withRotationalRate(-driverController_HID.getRightX() * MaxAngularRate)
+                robotCentricDrive.withVelocityX(driverController_HID.getLeftY() * MaxSpeed) // Changed to use x
+                .withVelocityY(driverController_HID.getLeftX() * MaxSpeed) // Changed to use y
+                .withRotationalRate(driverController_HID.getRightX() * MaxAngularRate)
         ));
+
+        /* 
+        driverController.rightTrigger().whileTrue(drivetrain.applyRequest(()->
+                robotCentricDrive.withVelocityX(drivetrain.driveToClosestPose().vxMetersPerSecond) // Changed to use x
+                .withVelocityY(drivetrain.driveToClosestPose().vyMetersPerSecond) // Changed to use y
+                .withRotationalRate(drivetrain.driveToClosestPose().omegaRadiansPerSecond)
+        ));
+
+        driverController.leftTrigger().whileTrue(drivetrain.applyRequest(()->
+                robotCentricDrive.withVelocityX(visionSubsystem.driveToAprilTag().vxMetersPerSecond)
+                .withVelocityY(visionSubsystem.driveToAprilTag().vyMetersPerSecond)
+                .withRotationalRate(visionSubsystem.driveToAprilTag().omegaRadiansPerSecond)));
+        */
+
+        driverController.x().whileTrue(drivetrain.applyRequest(()->
+                robotCentricDrive.withVelocityX(0)
+                .withVelocityY(visionSubsystem.getClampedYawLeft())
+                .withRotationalRate(0)));
+        driverController.y().whileTrue(drivetrain.applyRequest(()->
+                robotCentricDrive.withVelocityX(0)
+                .withVelocityY(visionSubsystem.getClampedYawRight())
+                .withRotationalRate(0)));
+
+        
+        driverController.leftTrigger().onTrue(drivetrain.applyRequest(()->
+                robotCentricDrive.withVelocityX(1)
+                .withVelocityY(0)
+                .withRotationalRate(0)).withTimeout(0.5)
+                .andThen(drivetrain.applyRequest(()->
+                robotCentricDrive.withVelocityX(0)
+                .withVelocityY(visionSubsystem.getClampedYawLeft())
+                .withRotationalRate(0))).withTimeout(2)
+                .andThen(drivetrain.applyRequest(()->
+                robotCentricDrive.withVelocityX(-1)
+                .withVelocityY(0)
+                .withRotationalRate(0)).withTimeout(0.7)));
+
+        driverController.rightTrigger().onTrue(drivetrain.applyRequest(()->
+        robotCentricDrive.withVelocityX(0)
+        .withVelocityY(1)
+        .withRotationalRate(0)).withTimeout(0.45));
+   
+/* 
+        driverController.rightTrigger().onTrue(drivetrain.applyRequest(()->
+                robotCentricDrive.withVelocityX(1)
+                .withVelocityY(0)
+                .withRotationalRate(0)).withTimeout(0.5)
+                .andThen(drivetrain.applyRequest(()->
+                robotCentricDrive.withVelocityX(0)
+                .withVelocityY(visionSubsystem.getClampedYawRight())
+                .withRotationalRate(0))).withTimeout(2)
+                .andThen(drivetrain.applyRequest(()->
+                robotCentricDrive.withVelocityX(-1)
+                .withVelocityY(0)
+                .withRotationalRate(0)).withTimeout(0.7)));
+*/
+
+        driverController.povUp().whileTrue(drivetrain.applyRequest(()->
+                robotCentricDrive.withVelocityX(-1)
+                .withVelocityY(0)
+                .withRotationalRate(0)));
+
+        driverController.povDown().whileTrue(drivetrain.applyRequest(()->
+                robotCentricDrive.withVelocityX(1)
+                .withVelocityY(0)
+                .withRotationalRate(0)));
+
+        driverController.povLeft().whileTrue(drivetrain.applyRequest(()->
+                robotCentricDrive.withVelocityX(0)
+                .withVelocityY(-1)
+                .withRotationalRate(0)));
+        
+        driverController.povRight().whileTrue(drivetrain.applyRequest(()->
+                robotCentricDrive.withVelocityX(0)
+                .withVelocityY(1)
+                .withRotationalRate(0)));
         
         driverController.a().whileTrue(drivetrain.applyRequest(() -> brake));
         driverController.b().whileTrue(drivetrain.applyRequest(() ->
@@ -130,8 +207,9 @@ public class RobotContainer {
         driverController.start().and(driverController.y()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kForward));
         driverController.start().and(driverController.x()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kReverse));
 */
-        driverController.leftBumper().onTrue(drivetrain.runOnce(()->drivetrain.seedFieldCentric()));// THIS DESTROYS THE AUTOS
-         
+        driverController.leftBumper().onTrue(drivetrain.runOnce(()->drivetrain.seedFieldCentric()));
+        
+//        driverController.leftTrigger().onTrue(drivetrain.runOnce(()->drivetrain.getPigeon2().reset()));
  /* Climb Controls
         driverController.povUp().whileTrue(climbForward);
         driverController.povDown().whileTrue(climbReverse);
@@ -141,19 +219,8 @@ public class RobotContainer {
 
    //     driverController.rightTrigger().onTrue(new AlignToAprilTag(drivetrain, vision, .25).withTimeout(1));
  //       driverController.leftTrigger().onTrue(new AlignToAprilTag2D(drivetrain, vision, 1).withTimeout(5));
-        
-/*   Vision alignment?
-        driverController.rightTrigger().whileTrue(drivetrain.applyRequest(()->
-        robotCentricDrive.withVelocityX(-vision.getYaw()) 
-        .withVelocityY(-driverController.getLeftY() * MaxSpeed) 
-        .withRotationalRate(driverController.getRightX() * MaxAngularRate)
-        ));
+       
 
-  
-        driverController.povLeft().onTrue(new InstantCommand(()->stateController.setAlignmentPoint(17)));
-        driverController.povRight().onTrue(new InstantCommand(()->stateController.setAlignmentPoint(-17)));
-        driverController.povUp().onTrue(new InstantCommand(()->stateController.setAlignmentPoint(0)));
-*/
         operatorController.a().onTrue(setIntakeMode);
         operatorController.b().onTrue(setHoldingMode);
         operatorController.x().onTrue(setPrePlacingMode);
@@ -204,18 +271,78 @@ public class RobotContainer {
         NamedCommands.registerCommand("setLevel2", setLevel2);
         NamedCommands.registerCommand("setLevel3", setLevel3);
         NamedCommands.registerCommand("setLevel4", setLevel4);
+
+        NamedCommands.registerCommand("Align", drivetrain.applyRequest(()->
+        robotCentricDrive.withVelocityX(1)
+        .withVelocityY(0)
+        .withRotationalRate(0)).withTimeout(0.5)
+        .andThen(drivetrain.applyRequest(()->
+        robotCentricDrive.withVelocityX(0)
+        .withVelocityY(visionSubsystem.getClampedYawLeft())
+        .withRotationalRate(0))).withTimeout(2)
+        .andThen(drivetrain.applyRequest(()->
+        robotCentricDrive.withVelocityX(-1)
+        .withVelocityY(0)
+        .withRotationalRate(0)).withTimeout(0.7)));
+
     }
     public void createAutos(){
         autoChooser.setDefaultOption("no auto", null);
 
         // Trouble Shooting - Basic
-//        autoChooser.addOption("Leave", new PathPlannerAuto("Leave"));
+//        autoChooser.addOption("PPLeave", new PathPlannerAuto("Leave"));
 
         autoChooser.addOption("Leave", drivetrain.applyRequest(() ->
-        robotCentricDrive.withVelocityX(0) // Drive forward with negative Y (forward), changed to use X
-            .withVelocityY(MaxSpeed/3) // Drive left with negative X (left), changed to use Y
+        robotCentricDrive.withVelocityX(-1) // Drive forward with negative Y (forward), changed to use X
+            .withVelocityY(0) // Drive left with negative X (left), changed to use Y
             .withRotationalRate(0) // Drive counterclockwise with negative X (left)
         ).withTimeout(1));
+
+        autoChooser.addOption("SimpleScoreEdge", drivetrain.applyRequest(() ->
+        robotCentricDrive.withVelocityX(-1) // Drive forward with negative Y (forward), changed to use X
+            .withVelocityY(0.5) // Drive left with negative X (left), changed to use Y
+            .withRotationalRate(0) // Drive counterclockwise with negative X (left)
+        ).withTimeout(4).andThen(drivetrain.applyRequest(()->
+        robotCentricDrive.withVelocityX(1)
+        .withVelocityY(0)
+        .withRotationalRate(0)).withTimeout(0.5)
+        .andThen(drivetrain.applyRequest(()->
+        robotCentricDrive.withVelocityX(0)
+        .withVelocityY(visionSubsystem.getClampedYawLeft())
+        .withRotationalRate(0))).withTimeout(2)
+        .andThen(drivetrain.applyRequest(()->
+        robotCentricDrive.withVelocityX(-1)
+        .withVelocityY(0)
+        .withRotationalRate(0)).withTimeout(0.7)))
+        .andThen(new InstantCommand(()->stateController.setLevel(Level.level3)))
+        .andThen(new InstantCommand(()->stateController.setRobotState(State.pre_placing)))
+        .andThen(new WaitCommand(2))
+        .andThen(new InstantCommand(()->stateController.setRobotState(State.placing)))
+        .andThen(new WaitCommand(1))
+        .andThen(new InstantCommand(()->stateController.stopCoral())));
+
+        autoChooser.addOption("SimpleScoreCenter", drivetrain.applyRequest(() ->
+        robotCentricDrive.withVelocityX(-1) // Drive forward with negative Y (forward), changed to use X
+            .withVelocityY(0) // Drive left with negative X (left), changed to use Y
+            .withRotationalRate(0) // Drive counterclockwise with negative X (left)
+        ).withTimeout(3).andThen(drivetrain.applyRequest(()->
+        robotCentricDrive.withVelocityX(1)
+        .withVelocityY(0)
+        .withRotationalRate(0)).withTimeout(0.5)
+        .andThen(drivetrain.applyRequest(()->
+        robotCentricDrive.withVelocityX(0)
+        .withVelocityY(visionSubsystem.getClampedYawLeft())
+        .withRotationalRate(0))).withTimeout(2)
+        .andThen(drivetrain.applyRequest(()->
+        robotCentricDrive.withVelocityX(-1)
+        .withVelocityY(0)
+        .withRotationalRate(0)).withTimeout(0.7)))
+        .andThen(new InstantCommand(()->stateController.setLevel(Level.level3)))
+        .andThen(new InstantCommand(()->stateController.setRobotState(State.pre_placing)))
+        .andThen(new WaitCommand(2))
+        .andThen(new InstantCommand(()->stateController.setRobotState(State.placing)))
+        .andThen(new WaitCommand(1))
+        .andThen(new InstantCommand(()->stateController.stopCoral())));
 
 /* 
         autoChooser.addOption("Center1Score", drivetrain.applyRequest(() ->
@@ -227,14 +354,15 @@ public class RobotContainer {
 
 
         // 1 Coral Simple Autos
-//        autoChooser.addOption("OBR-R6-1S", new PathPlannerAuto("OBR-R6-1S"));
-//        autoChooser.addOption("OBR-R1-1S", new PathPlannerAuto("OBR-R1-1S"));
-//        autoChooser.addOption("OBR-R2-1S", new PathPlannerAuto("OBR-R2-1S"));
-//        autoChooser.addOption("OBL-R4-1S", new PathPlannerAuto("OBL-R4-1S"));
-//        autoChooser.addOption("OBL-R3-1S", new PathPlannerAuto("OBL-R3-1S"));
-//        autoChooser.addOption("OBL-R2-1S", new PathPlannerAuto("OBL-R2-1S"));
-//        autoChooser.addOption("I-R5-1S", new PathPlannerAuto("I-R5-1S"));
-
+        /* 
+        autoChooser.addOption("OR-R6-1S", new PathPlannerAuto("OBR-R6-1S"));
+        autoChooser.addOption("OR-R1-1S", new PathPlannerAuto("OBR-R1-1S"));
+        autoChooser.addOption("OR-R2-1S", new PathPlannerAuto("OBR-R2-1S"));
+        autoChooser.addOption("OL-R4-1S", new PathPlannerAuto("OBL-R4-1S"));
+        autoChooser.addOption("OL-R3-1S", new PathPlannerAuto("OBL-R3-1S"));
+        autoChooser.addOption("OL-R2-1S", new PathPlannerAuto("OBL-R2-1S"));
+        autoChooser.addOption("I-R5-1S", new PathPlannerAuto("I-R5-1S"));
+*/
 /*
         // Coral Cycle (Coral Station 1 and 2)
         autoChooser.addOption("S1-CC", new PathPlannerAuto("S1-CC"));

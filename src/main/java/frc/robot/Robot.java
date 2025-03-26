@@ -57,7 +57,6 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopInit() {
     System.out.println("teleOp");
-    SwerveRequest.RobotCentric robotCentricDrive = new SwerveRequest.RobotCentric();
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
     }
