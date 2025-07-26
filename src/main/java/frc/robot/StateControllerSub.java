@@ -14,6 +14,10 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StructPublisher;
+import edu.wpi.first.util.datalog.DataLog;
+import edu.wpi.first.util.datalog.StructLogEntry;
+import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -27,6 +31,9 @@ import frc.robot.subsystems.ElevatorSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 //import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.VisionSubsystem;
+import edu.wpi.first.math.geometry.struct.Pose3dStruct;
+
+
 
 public class StateControllerSub extends SubsystemBase{
 
@@ -68,6 +75,20 @@ public class StateControllerSub extends SubsystemBase{
     boolean holdingAlgae;
     SendableChooser<ControlState> controlStateChooser;
 
+    StructLogEntry<Pose3d> model0poseLogger;
+
+    StructPublisher<Pose3d> model0Publisher = NetworkTableInstance.getDefault()
+        .getStructTopic("Module0Pose", Pose3d.struct).publish();
+
+    Pose3d armInitialPose = new Pose3d(0,0,0, new Rotation3d(0,0,0));
+    Pose3d armL4Pose = new Pose3d(0,0,1, new Rotation3d(0,0,0)); // Publish this when needed
+    Pose3d armL3Pose = new Pose3d(0,0,0.7, new Rotation3d(0,0,0)); // Publish this when needed
+    Pose3d armL2Pose = new Pose3d(0,0,0.5, new Rotation3d(0,0,0)); // Publish this when needed
+    Pose3d armL1Pose = new Pose3d(0,0,0.4, new Rotation3d(0,0,0)); // Publish this when needed
+    Pose3d armHoldingPose = new Pose3d(0,0,0.35, new Rotation3d(0,0,0)); // Publish this when needed
+    Pose3d armIntakingPose = new Pose3d(0,0,0.45, new Rotation3d(0,0,0)); // Publish this when needed
+
+
     public StateControllerSub(VisionSubsystem vision, ElevatorSubsystem elevator, ClimbSubsystem climb, CommandSwerveDrivetrain drivetrain) {
         state = State.holding;
         State lastState = State.holding;
@@ -88,6 +109,8 @@ public class StateControllerSub extends SubsystemBase{
         holdingAlgae = false;
         previousBeamBreakState = false;
         alignmentPoint = 0;
+
+        model0Publisher.set(armInitialPose);
     }
 
 
@@ -197,8 +220,13 @@ public class StateControllerSub extends SubsystemBase{
     }
 
     public void periodic() {
+
         updateSmartDashboard();
  //       updatePoseFromVision();
+
+        if(Robot.isSimulation()){
+            updateSimulation();
+        } else{
 
         switch(state){
             case holding: 
@@ -286,6 +314,7 @@ public class StateControllerSub extends SubsystemBase{
                 break;
         }
     }
+    }
 
     public void updateSmartDashboard() {
         SmartDashboard.putString("Robot State", state.toString());
@@ -300,7 +329,49 @@ public class StateControllerSub extends SubsystemBase{
         SmartDashboard.putNumber("frAngle", driveSubsystem.getModule(0).getEncoder().getAbsolutePosition().getValueAsDouble());
         SmartDashboard.putNumber("blAngle", driveSubsystem.getModule(3).getEncoder().getAbsolutePosition().getValueAsDouble());
         SmartDashboard.putNumber("brAngle", driveSubsystem.getModule(2).getEncoder().getAbsolutePosition().getValueAsDouble());
-}
+
+
+    }
+
+    public void updateSimulation(){
+
+        visionSubsystem.updateSimulation(driveSubsystem.getState().Pose);
+    
+        switch(state){
+            case holding: 
+                model0Publisher.set(armHoldingPose);
+                break;
+
+            case intaking: 
+                model0Publisher.set(armIntakingPose);
+                break;
+
+            case pre_placing: 
+                if(itemType.equals(ItemType.coral)){
+                    switch(level){
+                        case level1:
+                            model0Publisher.set(armL1Pose);
+                            break;
+                        case level2:
+                            model0Publisher.set(armL2Pose);
+                            break;
+                        case level3:
+                            model0Publisher.set(armL3Pose);
+                            break;
+                        case level4:
+                            model0Publisher.set(armL4Pose);
+                            break;
+                    }
+                }
+                break;
+
+            case climbing:
+                model0Publisher.set(armHoldingPose);
+                break;
+            default:
+                break;
+        }
+    }
 
     public void toggleControlMode(){
         if(controlState.equals(ControlState.manual)){

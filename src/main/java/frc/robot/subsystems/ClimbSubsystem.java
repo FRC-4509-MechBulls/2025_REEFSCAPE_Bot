@@ -1,6 +1,7 @@
 package frc.robot.subsystems;
 
 import com.revrobotics.spark.SparkMax;
+import com.ctre.phoenix6.hardware.Pigeon2;
 import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkBase.PersistMode;
@@ -64,6 +65,13 @@ public class ClimbSubsystem extends SubsystemBase{
   //      climb.set((desiredPosition-encoder.getPosition())/100);
    //     climb.set(-.1);
         SmartDashboard.putNumber("climbEncoder", encoder.getPosition()); 
+    }
+
+    public void playAroundGyro(){
+        Pigeon2 gyro = new Pigeon2(0);
+
+        
+       
     }
     
 }

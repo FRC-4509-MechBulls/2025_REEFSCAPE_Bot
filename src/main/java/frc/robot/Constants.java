@@ -13,6 +13,7 @@ import com.pathplanner.lib.config.ModuleConfig;
 import com.pathplanner.lib.config.RobotConfig;
 
 import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.estimator.PoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -20,6 +21,7 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DigitalInput;
@@ -116,6 +118,8 @@ public class Constants {
 
         // Robot Dimensions: 37x37 in, .9398x.9398m
         public static double robotSideLength = .9398;
+
+        public static Matrix<N3, N1> visionStd = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5));
         
         public static List<Pose2d> aprilTagAlignmentPoses = new ArrayList<Pose2d>();
         static{

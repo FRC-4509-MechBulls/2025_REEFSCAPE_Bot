@@ -38,12 +38,14 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants;
+import frc.robot.Robot;
 import frc.robot.generated.TunerConstants.TunerSwerveDrivetrain;
 
 /**
@@ -59,8 +61,10 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     PIDController yController = new PIDController(Constants.DriveConstants.yP,Constants.DriveConstants.yI,Constants.DriveConstants.yD);
     PIDController thetaController = new PIDController(Constants.DriveConstants.thetaP,Constants.DriveConstants.thetaI,Constants.DriveConstants.thetaD);
 
+    /* 
     StructPublisher<Pose2d> publisher = NetworkTableInstance.getDefault()
         .getStructTopic("DialgaPose", Pose2d.struct).publish();
+*/
 
     /* Blue alliance sees forward as 0 degrees (toward red alliance wall) */
     private static final Rotation2d kBlueAlliancePerspectiveRotation = Rotation2d.kZero;
@@ -256,6 +260,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         yController.setTolerance(Constants.DriveConstants.yTolerance);
         yController.setIZone(1);
         thetaController.setTolerance(Constants.DriveConstants.thetaTolerance);
+        setVisionMeasurementStdDevs(Constants.DriveConstants.visionStd);
     }
     public void resetCorrectedPose(Pose2d newPose){
         this.resetPose(newPose);
@@ -285,7 +290,14 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                 ),
                 config,
                 // Assume the path needs to be flipped for Red vs Blue, this is normally the case
-                () -> {
+                () -> DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red,
+                this // Subsystem for requirements
+            );
+        } catch (Exception ex) {
+            DriverStation.reportError("Failed to load PathPlanner config and configure AutoBuilder", ex.getStackTrace());
+        }
+    }
+   /*{
                     // Boolean supplier that controls when the path will be mirrored for the red alliance
                     // This will flip the path being followed to the red side of the field.
                     // THE ORIGIN WILL REMAIN ON THE BLUE SIDE
@@ -295,18 +307,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                       return alliance.get() == DriverStation.Alliance.Red;
                     }
                     return false;
-                  },
-                this // Subsystem for requirements
-            );
-        } catch (Exception ex) {
-            DriverStation.reportError("Failed to load PathPlanner config and configure AutoBuilder", ex.getStackTrace());
-        }
-    }
-    public boolean shouldFlip() {
-        DriverStation.Alliance alliance = DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue);
-        
-        return alliance == DriverStation.Alliance.Red;
-    }
+                  } */
 
     public void applyOperatorPerspective(){
         if(DriverStation.getAlliance().isPresent()){
@@ -324,6 +325,10 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      * @return Command to run
      */
     public Command applyRequest(Supplier<SwerveRequest> requestSupplier) {
+        if(Robot.isSimulation()){
+            
+            
+        }
         return run(() -> this.setControl(requestSupplier.get()));
     }
 
@@ -352,8 +357,15 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     @Override
     public void periodic() {
 
+        
+
+        var alliance = DriverStation.getAlliance();
+    
+        if (alliance.isPresent()) {
+            SmartDashboard.putBoolean("isRedAlliance", alliance.get() == DriverStation.Alliance.Red);
+          }
+        
         field.setRobotPose(this.getState().Pose);
-        publisher.set(this.getState().Pose);
         SmartDashboard.putNumber("Heading", this.getPigeon2().getRotation2d().getDegrees());
         
 
@@ -452,6 +464,22 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         return speeds;
     }
 
-    
+    double simX, simY, simRad;
+
+    public void simulateDrive(double xSpeed, double ySpeed, double angularSpeed){
+        simX = xSpeed;
+        simY = ySpeed;
+        simRad = angularSpeed;
+    }
+
+    double lastSimDriveUpdateTime = 0;
+
+    void simDriveUpdate(){
+        if(lastSimDriveUpdateTime == 0){
+            lastSimDriveUpdateTime = Timer.getFPGATimestamp();
+
+            
+        }
+    }
 
 }

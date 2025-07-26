@@ -354,7 +354,6 @@ public class RobotContainer {
 
 
         // 1 Coral Simple Autos
-        /* 
         autoChooser.addOption("OR-R6-1S", new PathPlannerAuto("OBR-R6-1S"));
         autoChooser.addOption("OR-R1-1S", new PathPlannerAuto("OBR-R1-1S"));
         autoChooser.addOption("OR-R2-1S", new PathPlannerAuto("OBR-R2-1S"));
@@ -362,7 +361,7 @@ public class RobotContainer {
         autoChooser.addOption("OL-R3-1S", new PathPlannerAuto("OBL-R3-1S"));
         autoChooser.addOption("OL-R2-1S", new PathPlannerAuto("OBL-R2-1S"));
         autoChooser.addOption("I-R5-1S", new PathPlannerAuto("I-R5-1S"));
-*/
+
 /*
         // Coral Cycle (Coral Station 1 and 2)
         autoChooser.addOption("S1-CC", new PathPlannerAuto("S1-CC"));

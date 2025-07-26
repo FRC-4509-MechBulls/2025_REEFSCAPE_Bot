@@ -7,6 +7,10 @@ import org.photonvision.EstimatedRobotPose;
 import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
 import org.photonvision.PhotonPoseEstimator.PoseStrategy;
+import org.photonvision.estimation.TargetModel;
+import org.photonvision.simulation.PhotonCameraSim;
+import org.photonvision.simulation.SimCameraProperties;
+import org.photonvision.simulation.VisionSystemSim;
 import org.photonvision.targeting.PhotonPipelineResult;
 import org.photonvision.targeting.PhotonTrackedTarget;
 
@@ -23,9 +27,11 @@ import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
+import frc.robot.Robot;
 import frc.robot.StateControllerSub;
 
 public class VisionSubsystem extends SubsystemBase{
@@ -41,7 +47,9 @@ public class VisionSubsystem extends SubsystemBase{
     PhotonPoseEstimator photonPoseEstimator1;
     double alignmentPoint;
     PIDController yawController;
-//    PhotonPoseEstimator photonPoseEstimator2;
+    //    PhotonPoseEstimator photonPoseEstimator2;
+    VisionSystemSim visionSim;
+    Field2d simulatedField = new Field2d();
 
     public VisionSubsystem() {
         try{
@@ -62,8 +70,11 @@ public class VisionSubsystem extends SubsystemBase{
         alignmentPoint = 4;
         yawController = new PIDController(Constants.RobotConstants.visionkP, Constants.RobotConstants.visionkI, Constants.RobotConstants.visionkD);
         yawController.setIZone(3);
-    }
 
+        if(Robot.isSimulation()){
+            setUpSimulation();
+        }
+    }
     public Optional<EstimatedRobotPose> getEstimatedGlobalPose(Pose2d prevEstimatedRobotPose) {
          
         if(camera1.isConnected()){
@@ -199,8 +210,31 @@ public class VisionSubsystem extends SubsystemBase{
         SmartDashboard.putNumber("yawSpeed", yawSpeed);
         return -yawSpeed;
     }
+    public void setUpSimulation(){
+        visionSim = new VisionSystemSim("main");
+        TargetModel targetModel = TargetModel.kAprilTag36h11;
 
-    
+        visionSim.addAprilTags(aprilTagFieldLayout);
+
+        SimCameraProperties cameraProp = new SimCameraProperties();
+        cameraProp.setCalibration(960, 720, Rotation2d.fromDegrees(100)); // 960x720 resolution, 100 degree FOV
+        cameraProp.setCalibError(0.25, 0.08); // Approximate detection noise
+        cameraProp.setFPS(20); // 20 FPS
+        cameraProp.setAvgLatencyMs(35); // Average latency
+        cameraProp.setLatencyStdDevMs(5);
+
+        PhotonCameraSim cameraSim1 = new PhotonCameraSim(camera1, cameraProp);
+        Transform3d robotToCamera = robotToCamera1;
+        visionSim.addCamera(cameraSim1, robotToCamera);
+
+        cameraSim1.enableProcessedStream(true); // Enable processed stream for simulation
+
+    }
+    public void updateSimulation(Pose2d currentPose){
+        visionSim.update(currentPose);
+        simulatedField = visionSim.getDebugField();
+        SmartDashboard.putData(simulatedField);
+    }
     
    
 }
