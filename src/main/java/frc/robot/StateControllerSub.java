@@ -329,8 +329,6 @@ public class StateControllerSub extends SubsystemBase{
         SmartDashboard.putNumber("frAngle", driveSubsystem.getModule(0).getEncoder().getAbsolutePosition().getValueAsDouble());
         SmartDashboard.putNumber("blAngle", driveSubsystem.getModule(3).getEncoder().getAbsolutePosition().getValueAsDouble());
         SmartDashboard.putNumber("brAngle", driveSubsystem.getModule(2).getEncoder().getAbsolutePosition().getValueAsDouble());
-
-
     }
 
     public void updateSimulation(){
