@@ -15,9 +15,7 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StructPublisher;
-import edu.wpi.first.util.datalog.DataLog;
 import edu.wpi.first.util.datalog.StructLogEntry;
-import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -318,17 +316,13 @@ public class StateControllerSub extends SubsystemBase{
 
     public void updateSmartDashboard() {
         SmartDashboard.putString("Robot State", state.toString());
-        SmartDashboard.putString("Item Type", itemType.toString());
         SmartDashboard.putString("Level", level.toString());
-        SmartDashboard.putString("Algae Objective", algaeObjective.toString());
-        SmartDashboard.putString("Algae Intake Source", algaeIntakeSource.toString());
-        SmartDashboard.putBoolean("holdingAlgae", holdingAlgae);
  //       SmartDashboard.putNumber("pipelineResult", visionSubsystem.getPipelineResult().getBestTarget().fiducialId);
         SmartDashboard.putNumber("AlignmentPoint", alignmentPoint);
-        SmartDashboard.putNumber("flAngle", driveSubsystem.getModule(1).getEncoder().getAbsolutePosition().getValueAsDouble());
-        SmartDashboard.putNumber("frAngle", driveSubsystem.getModule(0).getEncoder().getAbsolutePosition().getValueAsDouble());
-        SmartDashboard.putNumber("blAngle", driveSubsystem.getModule(3).getEncoder().getAbsolutePosition().getValueAsDouble());
-        SmartDashboard.putNumber("brAngle", driveSubsystem.getModule(2).getEncoder().getAbsolutePosition().getValueAsDouble());
+ //       SmartDashboard.putNumber("flAngle", driveSubsystem.getModule(1).getEncoder().getAbsolutePosition().getValueAsDouble());
+ //       SmartDashboard.putNumber("frAngle", driveSubsystem.getModule(0).getEncoder().getAbsolutePosition().getValueAsDouble());
+ //       SmartDashboard.putNumber("blAngle", driveSubsystem.getModule(3).getEncoder().getAbsolutePosition().getValueAsDouble());
+ //       SmartDashboard.putNumber("brAngle", driveSubsystem.getModule(2).getEncoder().getAbsolutePosition().getValueAsDouble());
     }
 
     public void updateSimulation(){
@@ -411,7 +405,7 @@ public class StateControllerSub extends SubsystemBase{
     }
 
     public void toggleClimb(double speed){
-        climbSubsystem.setSpeed(speed);
+        //climbSubsystem.setSpeed(speed);
     }
     public void setShooterIntakeSource(AlgaeIntakeSource algaeIntakeSource){
         this.algaeIntakeSource = algaeIntakeSource;

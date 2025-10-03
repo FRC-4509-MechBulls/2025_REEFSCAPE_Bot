@@ -30,6 +30,7 @@ public class ClimbSubsystem extends SubsystemBase{
     double desiredPosition;
 
     public ClimbSubsystem() {
+        /* 
         climb = new SparkMax(Constants.ClimbConstants.climbMotorID, MotorType.kBrushless);
         config = new SparkMaxConfig();
         config.smartCurrentLimit(40, 40);
@@ -44,9 +45,10 @@ public class ClimbSubsystem extends SubsystemBase{
 
         pidController = new PIDController(Constants.ClimbConstants.climbkp, Constants.ClimbConstants.climbki, Constants.ClimbConstants.climbkd);
         pidController.setSetpoint(0);
+        */
     }
 
-
+    /* 
     public void setSpeed(double speed){
         if(encoder.getPosition() > 0.95){
             if(speed < 0){
@@ -60,18 +62,11 @@ public class ClimbSubsystem extends SubsystemBase{
         }
 //        climb.set(speed/4);
     }
+    */
 
     public void periodic() {
-  //      climb.set((desiredPosition-encoder.getPosition())/100);
-   //     climb.set(-.1);
-        SmartDashboard.putNumber("climbEncoder", encoder.getPosition()); 
+
     }
 
-    public void playAroundGyro(){
-        Pigeon2 gyro = new Pigeon2(0);
-
-        
-       
-    }
     
 }

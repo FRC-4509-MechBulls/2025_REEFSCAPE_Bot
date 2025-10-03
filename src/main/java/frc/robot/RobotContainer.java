@@ -46,9 +46,11 @@ import frc.robot.subsystems.VisionSubsystem;
 
 
 public class RobotContainer {
-    private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond) * Constants.DriveConstants.maxSpeed; // kSpeedAt12Volts desired top speed
+    private double MaxSpeed = (TunerConstants.kSpeedAt12Volts.in(MetersPerSecond) * Constants.DriveConstants.maxSpeed); // kSpeedAt12Volts desired top speed
+    private double adjustableMaxSpeeed = MaxSpeed/2;
     private double MaxAngularRate = RotationsPerSecond.of(2).in(RadiansPerSecond) * Constants.DriveConstants.maxSpeed; // 3/4 of a rotation per second max angular velocity
 
+    private double adjustableMaxAngularRate = MaxAngularRate/2;
     /* Setting up bindings for necessary control of the swerve drive platform */
     private final SwerveRequest.RobotCentric robotCentricDrive = new SwerveRequest.RobotCentric()
             .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * .1)
@@ -105,9 +107,9 @@ public class RobotContainer {
         drivetrain.setDefaultCommand(
             // Drivetrain will execute this command periodically // all negative values
             drivetrain.applyRequest(() ->
-                fieldCentricDrive.withVelocityX(driverController_HID.getLeftY() * MaxSpeed) // Drive forward with negative Y (forward), changed to use X
-                    .withVelocityY(driverController_HID.getLeftX() * MaxSpeed) // Drive left with negative X (left), changed to use Y
-                    .withRotationalRate(driverController_HID.getRightX() * MaxAngularRate) // Drive counterclockwise with negative X (left)
+                fieldCentricDrive.withVelocityX(driverController_HID.getLeftY() * adjustableMaxSpeeed) // Drive forward with negative Y (forward), changed to use X
+                    .withVelocityY(driverController_HID.getLeftX() * adjustableMaxSpeeed) // Drive left with negative X (left), changed to use Y
+                    .withRotationalRate(driverController_HID.getRightX() * adjustableMaxAngularRate) // Drive counterclockwise with negative X (left)
             )
         );
 

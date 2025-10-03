@@ -40,8 +40,8 @@ public class Constants {
         public static final double minimumHeight = 0.4 + 0.3;
         public static final double holdingHeight = 0.9;
         public static final double level1Height = 2.05 + 0.3;
-        public static final double level2Height = 2.27 + 0.47;
-        public static final double level3Height = 3.74 + 0.4;
+        public static final double level2Height = 3.74 + 0.73;
+        public static final double level3Height = 4.85;
         public static final double level4Height =  5 + 0.3;  // 5.5
         public static final double intakeHeight = 0.9; // .82
 

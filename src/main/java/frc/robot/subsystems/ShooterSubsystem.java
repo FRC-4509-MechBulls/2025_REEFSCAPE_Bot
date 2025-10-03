@@ -42,6 +42,7 @@ public class ShooterSubsystem extends SubsystemBase{
 
     public ShooterSubsystem() {
         
+        /* 
         absoluteEncoder = new DutyCycleEncoder(Constants.ShooterConstants.shooterArmEncoderChannel);
 
     //    absoluteEncoder = new DutyCycleEncoder(Constants.ShooterConstants.shooterArmEncoderChannel);
@@ -72,11 +73,13 @@ public class ShooterSubsystem extends SubsystemBase{
         armDownwardPIDController.setSetpoint(desiredAngle);
         armDownwardPIDController.setTolerance(5);
         
-
+        */
  
     }
     
     public void periodic() {
+
+        /* 
 
         if(((getContinuousPosition()+(zeroOffset*360))%360) > desiredAngle || desiredAngle == Constants.ShooterConstants.holdingAngle) { // If current angle is above setpoint, arm must go downwards
   //          arm.setVoltage(armDownwardPIDController.calculate((getContinuousPosition()+(zeroOffset*360))%360));
@@ -101,9 +104,7 @@ public class ShooterSubsystem extends SubsystemBase{
         SmartDashboard.putBoolean("armEncoderConnected", absoluteEncoder.isConnected());
         SmartDashboard.putNumber("armEncoderFrequency", absoluteEncoder.getFrequency());
 
-
-        
-
+        */
         
     }
 
